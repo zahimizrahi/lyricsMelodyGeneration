@@ -33,7 +33,7 @@ def parse_lyrices_line(line):
 
 def prepare_data(type='train'):
     # extract list of midi files
-    midi_files_list = [filename.lower() for filename in os.listdir(os.path.join(ROOT_PATH, DATA_PATH, MIDI_PATH))]
+    midi_files_list = [filename for filename in os.listdir(os.path.join(ROOT_PATH, DATA_PATH, MIDI_PATH))]
 
     # read the lyrics from the train file
     train_or_test = LYRICS_TRAIN if type == 'train' else LYRICS_TEST
