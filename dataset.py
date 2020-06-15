@@ -91,7 +91,7 @@ def load_data(with_melody=True, melody_type='doc2vec'):
     y = np.hstack([song['y'] for song in parsed_songs])
 
     if with_melody:
-        models = {name: joblib.load(os.path.join(DOC2VEC_MODELS_PATHS, f'{name}_model.jblib')) for name in
+        models = {name: joblib.load(os.path.join(DOC2VEC_MODELS_PATHS, f'{name}_model.joblib')) for name in
                   ['drums', 'melody', 'harmony']}
 
         songs = []
