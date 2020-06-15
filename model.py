@@ -10,6 +10,7 @@ from keras_layer_normalization import LayerNormalization
 from keras import regularizers
 from keras.models import Model
 from keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
 
 EMBEDDING_DIM = 300
 INPUT_LENGTH = 1
@@ -165,7 +166,11 @@ class LyricsMelodyModel:
         melody = KL.Dropout(dropout)(melody_input)
         combined = KL.Concatenate()([lyrics, melody])
         combined = KL.Reshape((1, EMBEDDING_DIM + MELODY_VEC_LENGTH))(combined)
-        combined = rnn_type(rnn_units)(combined)
+
+        ######################################################################
+        #combined = rnn_type(rnn_units)(combined)   #OLD CODE
+        combined = KL.LSTM(rnn_units)(combined)
+        ########################################################################
         if bidirectional:
             combined = KL.Bidirectional(combined)
         if is_layer_norm:
@@ -181,16 +186,22 @@ class LyricsMelodyModel:
 
     def train(self, X, y, epochs=5, batch_size=32, callbacks=[]):
         model = self.model
+
         # compile network
-        model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=[_perplexity])
+        #####################################################################################
+        #model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=[_perplexity])
+        model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+        ######################################################################################
+
+
         # fit network
         model.fit(X, y,
                   epochs=epochs,
                   batch_size=batch_size,
                   verbose=1,
                   shuffle=True,
-                  validation_split=0.1,
-                  callbacks=callbacks)
+                  validation_split=0.1
+                  )#callbacks=callbacks  ######################################################3
 
     def predict(self, first_word, song, n_words):
         in_text, result = first_word, first_word
