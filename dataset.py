@@ -80,7 +80,7 @@ def parse_lyrices_line(line):
 
 def prepare_data(type='train'):
     # extract list of midi files
-    midi_files_list = [filename.lower() for filename in os.listdir(os.path.join(ROOT_PATH, DATA_PATH, MIDI_PATH))]
+    midi_files_list = [filename for filename in os.listdir(os.path.join(ROOT_PATH, DATA_PATH, MIDI_PATH))]
 
     # read the lyrics from the train file
     train_or_test = LYRICS_TRAIN if type == 'train' else LYRICS_TEST
@@ -97,7 +97,7 @@ def prepare_data(type='train'):
     # get midi path for each song
     for i,song in enumerate(parsed_songs):
         midi_file_path = '{}_-_{}.mid'.format(song['artist'].replace(' ', '_'), song['song_name'].replace(' ', '_'))
-        if sum([1 for filename in midi_files_list if midi_file_path[:-4].replace('\\', '').lower() in filename]) > 0:
+        if sum([1 for filename in midi_files_list if midi_file_path[:-4].replace('\\', '').lower() in filename.lower()]) > 0:
             parsed_songs[i]['midi_path'] = os.path.join(ROOT_PATH, DATA_PATH, MIDI_PATH, midi_file_path)
     
     # remove songs without midi
