@@ -8,9 +8,9 @@ import itertools
 from keras.preprocessing.text import Tokenizer
 from keras.utils import to_categorical
 from tqdm import tqdm
-from src.midi_processing import get_song_vector, extract_midi_piano_roll
+from midi_processing import get_song_vector, extract_midi_piano_roll
 import joblib
-from src.consts import *
+from consts import *
 
 
 def parse_input_line(line):
