@@ -4,7 +4,7 @@ import numpy as np
 import pretty_midi
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from tqdm import tqdm
-from src.consts import *
+from consts import *
 import cv2
 
 

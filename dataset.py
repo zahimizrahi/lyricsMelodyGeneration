@@ -147,7 +147,7 @@ def load_test_data(with_melody=False, melody_type='doc2vec'):
     parsed_songs = prepare_data(type='test')
 
     if with_melody:
-        models = {name: joblib.load(os.path.join(DOC2VEC_MODELS_PATHS, f'{name}_model.jblib')) for name in
+        models = {name: joblib.load(os.path.join(DOC2VEC_MODELS_PATHS, f'{name}_model.joblib')) for name in
                   ['drums', 'melody', 'harmony']}
 
         for i, song_data in tqdm(enumerate(parsed_songs), total=len(parsed_songs), desc='Loading the songs embedding'):
