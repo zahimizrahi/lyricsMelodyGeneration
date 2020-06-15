@@ -209,7 +209,7 @@ def get_song_vector(midi_path, models, fs=10):
     melodies_path = os.path.join(ROOT_PATH, DATA_PATH, MIDI_PATH)
     for song_name in  os.listdir(melodies_path):
         if song_name.lower() in midi_path:
-            midi_path =  melodies_path + song_name
+            midi_path =  melodies_path + '/' + song_name
             break
     ###########################################
 
