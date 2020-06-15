@@ -12,7 +12,54 @@ from midi_processing import get_song_vector, extract_midi_piano_roll
 import joblib
 from consts import *
 
+# OUR CODE
 
+def get_midi_path(self, artist, song_name):
+    return '{}_-_{}.mid'.format(artist.strip().replace(' ', '_'), song_name.strip().replace(' ', '_'))
+
+def clean_data(lyrics_set):
+    clean_lyrics = lyrics_set.str.replace(r"''", '"').replace(r'`', "'").replace("/", "-").replace('\?\?\?', '?')
+    # Replace all brackets, and weird chars and :;#"
+    reg = r'[:;#\*"ã¤¼©¦­\]\[\}\{\)(?!]'
+    clean_lyrics = clean_lyrics.str.replace(r'[\[\]()\{\}:;#\*"ã¤¼©¦­!?]', '')
+
+    # replace words with space
+    for w in [" '", '\.\.', '\.\.\.', '\.\.\.\.', '\.\.\.\.\.']:
+        clean_lyrics = clean_lyrics.str.replace(w, ' ')
+
+    clean_lyrics = clean_lyrics.str.replace('&', '.')
+    # remove words
+    for w in ['chorus', '\-\-\-', '\-\-']:
+        clean_lyrics = clean_lyrics.str.replace(w, '')
+
+    clean_lyrics = clean_lyrics.apply(lambda x: ' '.join(x.split()))
+    return clean_lyrics
+
+def getIgnoreWordList(self, MIN_WORD_FREQUENCY=2):
+    text = ' '.join([w for w in self.df_train.Text])
+    tokens = word_tokenize(text)
+    text_in_words = tokens
+    word_freq = Counter(text_in_words)
+    ignored_words = set()
+    for k, v in word_freq.items():
+        if word_freq[k] < MIN_WORD_FREQUENCY:
+            ignored_words.add(k)
+    words = set(text_in_words)
+    print('Unique words before ignoring:', len(words))
+    print('Ignoring words with frequency <', MIN_WORD_FREQUENCY)
+    words = sorted(set(words) - ignored_words)
+    print('Unique words after ignoring:', len(words))
+    return ignored_words
+
+def getIgnoreText(self, line):
+        if self.ignored_words is None:
+            exit("turn on Ignore Word")
+        line_array = line.split()
+        line_array = [word for word in line_array if word not in self.ignored_words]
+        return ' '.join(line_array)
+
+
+######################################################33
 def parse_input_line(line):
     # For the case we have more than one song in a line
     if '&  &  &' in line:
@@ -33,13 +80,12 @@ def parse_lyrices_line(line):
 
 def prepare_data(type='train'):
     # extract list of midi files
-    midi_files_list = [filename for filename in os.listdir(os.path.join(ROOT_PATH, DATA_PATH, MIDI_PATH))]
+    midi_files_list = [filename.lower() for filename in os.listdir(os.path.join(ROOT_PATH, DATA_PATH, MIDI_PATH))]
 
     # read the lyrics from the train file
     train_or_test = LYRICS_TRAIN if type == 'train' else LYRICS_TEST
     with open(os.path.join(ROOT_PATH, DATA_PATH, train_or_test)) as fh:
         data_lines = fh.read().splitlines()
-
     # parse the songs
     parsed_songs = []
     for song_line in data_lines:
@@ -51,7 +97,7 @@ def prepare_data(type='train'):
     # get midi path for each song
     for i,song in enumerate(parsed_songs):
         midi_file_path = '{}_-_{}.mid'.format(song['artist'].replace(' ', '_'), song['song_name'].replace(' ', '_'))
-        if sum([1 for filename in midi_files_list if midi_file_path[:-4].replace('\\', '') in filename]) > 0:
+        if sum([1 for filename in midi_files_list if midi_file_path[:-4].replace('\\', '').lower() in filename]) > 0:
             parsed_songs[i]['midi_path'] = os.path.join(ROOT_PATH, DATA_PATH, MIDI_PATH, midi_file_path)
     
     # remove songs without midi
@@ -85,7 +131,6 @@ def load_vocab():
 
 def load_data(with_melody=True, melody_type='doc2vec'):
     parsed_songs = prepare_data()
-
     X_midi = [(song['midi_path'], len(song['X'])) for song in parsed_songs]
     X = np.hstack([song['X'] for song in parsed_songs])
     y = np.hstack([song['y'] for song in parsed_songs])
