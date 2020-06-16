@@ -14,6 +14,7 @@ import joblib
 from consts import *
 import pandas as pd
 from nltk import word_tokenize
+from collections import Counter
 
 
 def get_midi_path(artist, song_name):
