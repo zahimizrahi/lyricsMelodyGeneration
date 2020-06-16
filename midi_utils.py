@@ -9,7 +9,7 @@ import pickle
 
 import cv2
 
-def get_dict_embedding2(models_path = DOC2VEC_MODELS_PATHS , dir_melody = DIR_MELODY ):
+def get_dict_embedding(models_path = DOC2VEC_MODELS_PATHS , dir_melody = DIR_MELODY ):
     print('Load melody embbeding melodies')
     models = {name: joblib.load(os.path.join(models_path, f'{name}_model.joblib')) for name in
                   ['drums', 'melody', 'harmony']}

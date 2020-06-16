@@ -13,14 +13,14 @@ GLOVE_DIR = 'glove_pretrained/'
 
 def extract_embedding_weights(tokenizer = None):
     if tokenizer is None:
-      X, y, tokenizer = load_tokenized_data2()
+      X, y, tokenizer = load_tokenized_data()
     # prepare embedding matrix
     word_index = tokenizer.word_index
     num_words = len(word_index) + 1
     gc.collect()
-    pretrained_embeddings = load_pretrained_embedding2()
+    pretrained_embeddings = load_pretrained_embedding()
     gc.collect()
-    embedding_matrix, not_found = prepare_embedding_matrix2(num_words, EMBEDDING_DIM, word_index, pretrained_embeddings)
+    embedding_matrix, not_found = prepare_embedding_matrix(num_words, EMBEDDING_DIM, word_index, pretrained_embeddings)
     gc.collect()
     return embedding_matrix
 
