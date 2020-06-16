@@ -109,13 +109,6 @@ def load_data(is_melody_model=True, pre_embedding_melody=None, min_ignore_word_f
 
     if is_melody_model:
         # melody embedding handaling
-        # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@222
-        # if melody_type == 'doc2vec':
-        # songs.append(np.array([get_song_vector(midi_path, models)]*count))
-        # else:
-        #           songs.append([extract_midi_piano_roll(midi_path)] * count)
-        # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@222
-
         if pre_embedding_melody == None:
             local_pickle_file = os.path.join(DOC2VEC_MODELS_PATHS, 'dict_embedding_melody.pickle')
             if os.path.exists(local_pickle_file):
@@ -152,14 +145,12 @@ def load_vocab(X = None):
       X, _= load_data(is_melody_model=False, min_ignore_word_frequency = -1, max_sentence = -1)
     return list(set(X.flatten()))
 
-def load_tokenized_data(is_melody_model=True, melody_type='doc2vec', max_samples=-1, pre_embedding_melody=None,
-                         min_ignore_word_frequency=2, max_sentence=300):
+def load_tokenized_data(is_melody_model=True, max_samples=-1, pre_embedding_melody=None, min_ignore_word_frequency=2, max_sentence=300):
     if is_melody_model:
         X, y, songs = load_data(is_melody_model=is_melody_model, pre_embedding_melody=pre_embedding_melody,
                                  min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence)
     else:
-        X, y = load_data(with_melody=with_melody, melody_type=melody_type,
-                          min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence)
+        X, y = load_data(with_melody=with_melody,min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence)
 
     all_songs_words = ' '.join(load_vocab(X=X))
     tokenizer = init_tokenizer(all_songs_words)
