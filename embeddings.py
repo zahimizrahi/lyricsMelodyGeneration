@@ -1,6 +1,6 @@
 import warnings
 warnings.filterwarnings("ignore")
-from dataset import load_tokenized_data
+from data_processor import load_tokenized_data
 import gensim
 import pickle
 import os

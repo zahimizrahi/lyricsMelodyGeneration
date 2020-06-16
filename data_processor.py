@@ -8,7 +8,7 @@ import itertools
 from keras.preprocessing.text import Tokenizer
 from keras.utils import to_categorical
 from tqdm import tqdm
-from midi_processing import get_song_vector, extract_midi_piano_roll
+from midi_utils import get_song_vector, extract_midi_piano_roll
 import joblib
 from consts import *
 
