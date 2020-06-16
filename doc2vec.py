@@ -1,6 +1,6 @@
 import joblib
 import numpy as np
-from midi_processing import prepare_doc2vec
+from midi_utils import prepare_doc2vec
 
 def main():
     # load the entire melody, harmony and drums samples we extracted from the songs
