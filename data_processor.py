@@ -16,7 +16,6 @@ import pandas as pd
 from nltk import word_tokenize
 from collections import Counter
 
-
 def get_midi_path(artist, song_name):
     return '{}_-_{}.mid'.format(artist.strip().replace(' ', '_'), song_name.strip().replace(' ', '_'))
 
@@ -154,10 +153,11 @@ def load_tokenized_data(is_melody_model=True, max_samples=-1, pre_embedding_melo
 
     all_songs_words = ' '.join(load_vocab(X=X))
     tokenizer = init_tokenizer(all_songs_words)
-
     X = [lst[0] for lst in tokenizer.texts_to_sequences(X)]
     y = [lst[0] for lst in tokenizer.texts_to_sequences(y)]
-    y = to_categorical(y, num_classes=len(tokenizer.word_index) + 1)
+
+    if is_melody_model:
+        y = to_categorical(y, num_classes=len(tokenizer.word_index) + 1)
 
     if max_samples != -1:
         X = X[:max_samples]
@@ -169,7 +169,6 @@ def load_tokenized_data(is_melody_model=True, max_samples=-1, pre_embedding_melo
         return X, y, tokenizer, songs
     else:
         return X, y, tokenizer
-
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$4
 
