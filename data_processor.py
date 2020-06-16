@@ -149,7 +149,7 @@ def load_tokenized_data(is_melody_model=True, max_samples=-1, pre_embedding_melo
         X, y, songs = load_data(is_melody_model=is_melody_model, pre_embedding_melody=pre_embedding_melody,
                                  min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence)
     else:
-        X, y = load_data(with_melody=with_melody,min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence)
+        X, y = load_data(is_melody_model=is_melody_model,min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence)
 
     all_songs_words = ' '.join(load_vocab(X=X))
     tokenizer = init_tokenizer(all_songs_words)
@@ -168,7 +168,7 @@ def load_tokenized_data(is_melody_model=True, max_samples=-1, pre_embedding_melo
             songs = songs[:max_samples, :]
         return X, y, tokenizer, songs
     else:
-        return X, y, tokenizer
+        return np.array(X), np.array(y), tokenizer
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$4
 

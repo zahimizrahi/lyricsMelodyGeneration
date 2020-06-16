@@ -81,7 +81,7 @@ class LyricsModel:
             # model.add(rnn_type(rnn_units))
 
         model.add(Flatten())
-        model.add(Dense(units=vocabulary_size, kernel_regularizer=regularizers.l2(kernel_regularizer), activation='softmax'))
+        model.add(Dense(units=self.vocabulary_size, kernel_regularizer=regularizers.l2(kernel_regularizer), activation='softmax'))
         model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=metrics)
         if show_summary:
             print(model.summary())
@@ -103,24 +103,16 @@ class LyricsModel:
         self.model.evaluate(test_text, verbose=self.verbose,
                             steps=math.ceil((test_data_len - 1) / self.batch_size))  # callbacks=self.callbacks,
 
-    def fit(self, train_data, val_data, train_data_len, val_data_len, validation_steps=None):
-        history = self.model.fit(
-            train_data,
-            epochs=self.epochs,
-            callbacks=self.callbacks,
-            verbose=self.verbose,
-            shuffle=self.shuffle,
-            steps_per_epoch=math.ceil(train_data_len / self.batch_size),
-            validation_data=val_data,
-            validation_steps=math.ceil(val_data_len / self.batch_size)
-        )
-        # model.fit(X, y,
-        #             epochs=epochs,
-        #             batch_size=batch_size,
-        #             verbose=1,
-        #             shuffle=True,
-        #             validation_split=0.1,
-        #             callbacks=callbacks)
+    def fit(self, X,y, validation_split=0.1):
+        history = self.model.fit(X, y,
+                                 epochs=self.epochs,
+                                 batch_size=self.batch_size,
+                                 verbose=self.verbose,
+                                 shuffle=self.shuffle,
+                                 validation_split=validation_split,
+                                 callbacks=self.callbacks
+                                 )
+        return history
 
     def get_model(self):
         return self.model
