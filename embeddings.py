@@ -5,6 +5,7 @@ import gensim
 import pickle
 import os
 import numpy as np
+import gc
 
 EMBEDDING_DIM = 300
 GLOVE_DIR = 'glove_pretrained/'
@@ -14,8 +15,14 @@ def extract_embedding_weights():
     # prepare embedding matrix
     word_index = tokenizer.word_index
     num_words = len(word_index) + 1
+    print(gc.collect())
+    print("stage1 -Done")
     pretrained_embeddings = load_pretrained_embedding()
+    print(gc.collect())
+    print("stage2 -Done")
     embedding_matrix, not_found = prepare_embedding_matrix(num_words, EMBEDDING_DIM, word_index, pretrained_embeddings)
+    print(gc.collect())
+    print("stage3 -Done")
     return embedding_matrix
 
 def prepare_embedding_matrix(num_of_words, embedding_dim, word_index, pretrained_embeddings):
