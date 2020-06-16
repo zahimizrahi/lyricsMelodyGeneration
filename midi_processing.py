@@ -204,15 +204,6 @@ def get_song_vector(midi_path, models, fs=10):
     melody_model = models['melody']
     harmony_model = models['harmony']
 
-    ###########################################
-    #### MUST to IMPROVE!
-    melodies_path = os.path.join(ROOT_PATH, DATA_PATH, MIDI_PATH)
-    for song_name in  os.listdir(melodies_path):
-        if song_name.lower() in midi_path:
-            midi_path =  melodies_path + '/' + song_name
-            break
-    ###########################################
-
     # extract the notes from the instruments in the midi_file
     midi_obj = pretty_midi.PrettyMIDI(midi_path)
     melody_notes = []

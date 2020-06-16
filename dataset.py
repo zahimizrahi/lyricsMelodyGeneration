@@ -97,9 +97,13 @@ def prepare_data(type='train'):
     # get midi path for each song
     for i,song in enumerate(parsed_songs):
         midi_file_path = '{}_-_{}.mid'.format(song['artist'].replace(' ', '_'), song['song_name'].replace(' ', '_'))
-        if sum([1 for filename in midi_files_list if midi_file_path[:-4].replace('\\', '').lower() in filename.lower()]) > 0:
-            parsed_songs[i]['midi_path'] = os.path.join(ROOT_PATH, DATA_PATH, MIDI_PATH, midi_file_path)
-    
+        for filename in midi_files_list:
+            if filename.lower() in midi_file_path:
+                parsed_songs[i]['midi_path'] = os.path.join(ROOT_PATH, DATA_PATH, MIDI_PATH, filename)
+                break
+        # if sum([1 for filename in midi_files_list if midi_file_path[:-4].replace('\\', '').lower() in filename.lower()]) > 0:
+        #     parsed_songs[i]['midi_path'] = os.path.join(ROOT_PATH, DATA_PATH, MIDI_PATH, midi_file_path)
+
     # remove songs without midi
     parsed_songs = [song for song in parsed_songs if 'midi_path' in song.keys()]
 
