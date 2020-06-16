@@ -12,6 +12,7 @@ from tqdm import tqdm
 from midi_utils import get_song_vector, extract_midi_piano_roll
 import joblib
 from consts import *
+import pandas as pd
 
 def get_midi_path(artist, song_name):
     return '{}_-_{}.mid'.format(artist.strip().replace(' ', '_'), song_name.strip().replace(' ', '_'))
