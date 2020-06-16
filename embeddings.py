@@ -6,6 +6,7 @@ import pickle
 import os
 import numpy as np
 import gc
+from consts import *
 
 EMBEDDING_DIM = 300
 GLOVE_DIR = 'glove_pretrained/'
