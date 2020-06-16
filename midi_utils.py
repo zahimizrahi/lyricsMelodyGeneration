@@ -5,7 +5,28 @@ import pretty_midi
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from tqdm import tqdm
 from consts import *
+import pickle
+
 import cv2
+
+def get_dict_embedding2(models_path = DOC2VEC_MODELS_PATHS , dir_melody = DIR_MELODY ):
+    print('Load melody embbeding melodies')
+    models = {name: joblib.load(os.path.join(models_path, f'{name}_model.joblib')) for name in
+                  ['drums', 'melody', 'harmony']}
+    midi_paths = pathlib.Path(dir_melody)
+    midi_files = list(midi_paths.glob('*'))
+    songs_vectors = []
+    song_names = []
+    for midi_file in tqdm(midi_files, total=len(midi_files)):
+        try:
+          songs_vectors.append(get_song_vector2(str(midi_file), models))
+          song_names.append(midi_file.name.strip().lower())
+        except Exception as e:
+          print(e)
+          print(f"Invalid song: {midi_file.name}")
+    return dict(zip(song_names, songs_vectors))
+
+
 
 
 def check_if_melody(instrument, silence_threshold=0.7, mono_threshold=0.8, fs=10):
@@ -245,6 +266,7 @@ def get_song_vector(midi_path, models, fs=10):
     return np.hstack([drums_embedding, melody_embedding, harmony_embedding])
 
 
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 def extract_midi_piano_roll(midi_path, resize_time=128, fs=10):
     midi_obj = pretty_midi.PrettyMIDI(midi_path)
     results = midi_obj.get_piano_roll(fs=fs)
@@ -252,3 +274,4 @@ def extract_midi_piano_roll(midi_path, resize_time=128, fs=10):
     results = cv2.resize(results, (resize_time, results.shape[0]))
 
     return results
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$

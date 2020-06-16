@@ -4,6 +4,7 @@ import string
 import nltk
 import os
 import numpy as np
+import pickle
 import itertools
 from keras.preprocessing.text import Tokenizer
 from keras.utils import to_categorical
@@ -12,9 +13,7 @@ from midi_utils import get_song_vector, extract_midi_piano_roll
 import joblib
 from consts import *
 
-# OUR CODE
-
-def get_midi_path(self, artist, song_name):
+def get_midi_path(artist, song_name):
     return '{}_-_{}.mid'.format(artist.strip().replace(' ', '_'), song_name.strip().replace(' ', '_'))
 
 def clean_data(lyrics_set):
@@ -35,8 +34,8 @@ def clean_data(lyrics_set):
     clean_lyrics = clean_lyrics.apply(lambda x: ' '.join(x.split()))
     return clean_lyrics
 
-def getIgnoreWordList(self, MIN_WORD_FREQUENCY=2):
-    text = ' '.join([w for w in self.df_train.Text])
+def getIgnoreWordList(df_train, MIN_WORD_FREQUENCY=2):
+    text = ' '.join([w for w in df_train.Text])
     tokens = word_tokenize(text)
     text_in_words = tokens
     word_freq = Counter(text_in_words)
@@ -51,146 +50,133 @@ def getIgnoreWordList(self, MIN_WORD_FREQUENCY=2):
     print('Unique words after ignoring:', len(words))
     return ignored_words
 
-def getIgnoreText(self, line):
-        if self.ignored_words is None:
-            exit("turn on Ignore Word")
+def getIgnoreText(line, ignored_words):
+        if ignored_words is None:
+            raise ValueError("turn on Ignore Word")
         line_array = line.split()
-        line_array = [word for word in line_array if word not in self.ignored_words]
+        line_array = [word for word in line_array if word not in ignored_words]
         return ' '.join(line_array)
 
-
-######################################################33
-def parse_input_line(line):
-    # For the case we have more than one song in a line
-    if '&  &  &' in line:
-        subsongs = line.split('&  &  &')
-        parsed_subsongs = []
-        for song_line in subsongs:
-            parsed_subsongs.append(parse_lyrices_line(song_line))
-        return parsed_subsongs
-    else:
-        return [parse_lyrices_line(line)]
-
-
-def parse_lyrices_line(line):
-    splitted_line = line.split(',')
-    return {'artist': splitted_line[0], 'song_name': splitted_line[1].strip(), 'lyrics': ''.join(splitted_line[2:]),
-            'X': [], 'y': []}
-
-
-def prepare_data(type='train'):
-    # extract list of midi files
-    midi_files_list = [filename for filename in os.listdir(os.path.join(ROOT_PATH, DATA_PATH, MIDI_PATH))]
-
-    # read the lyrics from the train file
+def prepare_data(min_ignore_word_frequency=2, max_sentence=300, type='train', ignored_words=None):
+    midi_files_list = [filename.lower() for filename in os.listdir(os.path.join(ROOT_PATH, DATA_PATH, MIDI_PATH))]
     train_or_test = LYRICS_TRAIN if type == 'train' else LYRICS_TEST
-    with open(os.path.join(ROOT_PATH, DATA_PATH, train_or_test)) as fh:
-        data_lines = fh.read().splitlines()
-    # parse the songs
-    parsed_songs = []
-    for song_line in data_lines:
-        parsed_songs.append(parse_input_line(song_line))
+    lyrics_files_dir = os.path.join(ROOT_PATH, DATA_PATH, train_or_test)
+    df_train = pd.read_csv(lyrics_files_dir, usecols=[0, 1, 2], names=['Artist', 'SongName', 'Text'])
+    df_train.Text = clean_data(df_train.Text)
 
-    # in case of 2 songs in one line, flatten the songs
-    parsed_songs = list(itertools.chain.from_iterable(parsed_songs))
+    if min_ignore_word_frequency > 1:
+        if ignored_words is None:
+            if type != 'train':
+                raise ValueError('if type is not train - ignored_words cant to be Empty')
+            ignored_words = getIgnoreWordList(df_train, MIN_WORD_FREQUENCY=min_ignore_word_frequency)
+        df_train.Text = df_train.Text.apply(lambda line: getIgnoreText(line, ignored_words))
 
-    # get midi path for each song
-    for i,song in enumerate(parsed_songs):
-        midi_file_path = '{}_-_{}.mid'.format(song['artist'].replace(' ', '_'), song['song_name'].replace(' ', '_'))
-        for filename in midi_files_list:
-            if filename.lower() in midi_file_path:
-                parsed_songs[i]['midi_path'] = os.path.join(ROOT_PATH, DATA_PATH, MIDI_PATH, filename)
-                break
-        # if sum([1 for filename in midi_files_list if midi_file_path[:-4].replace('\\', '').lower() in filename.lower()]) > 0:
-        #     parsed_songs[i]['midi_path'] = os.path.join(ROOT_PATH, DATA_PATH, MIDI_PATH, midi_file_path)
+    df_train['MelodyPath'] = df_train.apply(lambda x: get_midi_path(x['Artist'], x['SongName']), axis=1)
+    # in case there is no melody path for some of the rows in lyrics train
+    df_train['MelodyPath'] = df_train['MelodyPath'].apply(lambda x: x if x in midi_files_list else None)
+    df_train = df_train[df_train['MelodyPath'].notna()]
+    df_train = df_train.reset_index(drop=True)
 
-    # remove songs without midi
-    parsed_songs = [song for song in parsed_songs if 'midi_path' in song.keys()]
+    if max_sentence != -1:
+        df_train['Text'] = df_train['Text'].apply(lambda x: ' '.join(x.split()[:max_sentence]))
 
-    # add special tokens
-    for i, song in enumerate(parsed_songs):
-        # change & sign in <EOL> and remove redundent dash
-        parsed_songs[i]['lyrics'] = ' '.join(nltk.word_tokenize(parsed_songs[i]['lyrics']))
-
-        # add <EOS> in the end of each song and change & to </s>
-        parsed_songs[i]['lyrics'] = parsed_songs[i]['lyrics'].replace('&', '.')
-        parsed_songs[i]['lyrics'] += " eos"
-
-    # split lyrics by windows size
-    for i, song in enumerate(tqdm(parsed_songs, total=len(parsed_songs))):
-        splitted_lyrics = [token for token in nltk.word_tokenize(parsed_songs[i]['lyrics']) if token == '.' or token not in string.punctuation]
+    X = []
+    y = []
+    for i, lyrics in enumerate(df_train.Text):
+        splitted_lyrics = [token for token in word_tokenize(lyrics)]
+        sub_x = []
+        sub_y = []
         for j in range(len(splitted_lyrics) - 1):
-            parsed_songs[i]['X'].append(splitted_lyrics[j])
-            parsed_songs[i]['y'].append(splitted_lyrics[j+1])
-        parsed_songs[i]['X'] = np.array(parsed_songs[i]['X'])
-        parsed_songs[i]['y'] = np.array(parsed_songs[i]['y'])
+            sub_x.append(splitted_lyrics[j])
+            sub_y.append(splitted_lyrics[j + 1])
+        X.append(np.array(sub_x))
+        y.append(np.array(sub_y))
+    df_train['X'] = X
+    df_train['y'] = y
 
-    return parsed_songs
+    return df_train, ignored_words
 
+def load_data(is_melody_model=True, pre_embedding_melody=None, min_ignore_word_frequency=2, max_sentence=300):
+    df_train, ignored_words = prepare_data(min_ignore_word_frequency=min_ignore_word_frequency,max_sentence=max_sentence)
+    text_x = np.concatenate(df_train.X)
+    text_y = np.concatenate(df_train.y)
+    X = np.hstack(text_x)
+    y = np.hstack(text_y)
 
-def load_vocab():
-    X, _ = load_data(with_melody=False)
-    return list(set(X.flatten())) + ['eos']
+    if is_melody_model:
+        # melody embedding handaling
+        # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@222
+        # if melody_type == 'doc2vec':
+        # songs.append(np.array([get_song_vector(midi_path, models)]*count))
+        # else:
+        #           songs.append([extract_midi_piano_roll(midi_path)] * count)
+        # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@222
 
+        if pre_embedding_melody == None:
+            local_pickle_file = os.path.join(DOC2VEC_MODELS_PATHS, 'dict_embedding_melody.pickle')
+            if os.path.exists(local_pickle_file):
+                print(f'Load {local_pickle_file}')
+                with open(local_pickle_file, 'rb') as handle:
+                    pre_embedding_melody = pickle.load(handle)
+            else:
+                pre_embedding_melody = get_dict_embedding()
 
-def load_data(with_melody=True, melody_type='doc2vec'):
-    parsed_songs = prepare_data()
-    X_midi = [(song['midi_path'], len(song['X'])) for song in parsed_songs]
-    X = np.hstack([song['X'] for song in parsed_songs])
-    y = np.hstack([song['y'] for song in parsed_songs])
+        df_train = df_train[df_train['MelodyPath'].isin(pre_embedding_melody.keys())]
+        # test_df = test_df[test_df['MelodyPath'].isin(pre_embedding_melody.keys())]
+        df_train['EmbeddingMelody'] = df_train.MelodyPath.apply(lambda melody: pre_embedding_melody[melody])
+        df_train = df_train.reset_index(drop=True)
+        # test_df['EmbeddingMelody'] = test_df.MelodyPath.apply(lambda melody: embedding_melody[melody])
+        df_train["EmbeddingMelody_multi"] = df_train.apply(lambda row: np.array([row["EmbeddingMelody"]] * len(row.X)),
+                                                           axis=1)
+        songs = np.vstack(df_train["EmbeddingMelody_multi"])
+        # end melody embedding handaling
 
-    if with_melody:
-        models = {name: joblib.load(os.path.join(DOC2VEC_MODELS_PATHS, f'{name}_model.joblib')) for name in
-                  ['drums', 'melody', 'harmony']}
-
-        songs = []
-        X = [] 
-        y = []
-        for i, (midi_path, count) in tqdm(enumerate(X_midi), total=len(X_midi), desc='Loading the songs embedding'):
-            try:
-                if melody_type == 'doc2vec':
-                    songs.append(np.array([get_song_vector(midi_path, models)]*count))
-                else:
-                    songs.append([extract_midi_piano_roll(midi_path)] * count)
-                
-                # We don't wont to load songs with problematic midi
-                X.append(parsed_songs[i]['X'])
-                y.append(parsed_songs[i]['y'])
-            except Exception as e:
-                print(r"Couldn't load {}, issue with the midi file.".format(midi_path))
-                continue
-        songs = np.vstack(songs)
-        X = np.hstack(X)
-        y = np.hstack(y)
+        text_x = np.concatenate(df_train.X)
+        text_y = np.concatenate(df_train.y)
+        X = np.hstack(text_x)
+        y = np.hstack(text_y)
         return X, y, songs
-        
     return X, y
 
+def init_tokenizer(text):
+    tokenizer = Tokenizer(filters='', oov_token='oov_token')
+    tokenizer.fit_on_texts([text])
+    return tokenizer
 
-def load_tokenized_data(with_melody=False, melody_type='doc2vec', max_samples=-1):
-    if with_melody:
-        X, y, songs = load_data(with_melody=with_melody, melody_type=melody_type)
+def load_vocab(X = None):
+    if X is None:
+      X, _= load_data(is_melody_model=False, min_ignore_word_frequency = -1, max_sentence = -1)
+    return list(set(X.flatten()))
+
+def load_tokenized_data(is_melody_model=True, melody_type='doc2vec', max_samples=-1, pre_embedding_melody=None,
+                         min_ignore_word_frequency=2, max_sentence=300):
+    if is_melody_model:
+        X, y, songs = load_data(is_melody_model=is_melody_model, pre_embedding_melody=pre_embedding_melody,
+                                 min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence)
     else:
-        X, y = load_data(with_melody=with_melody, melody_type=melody_type)
+        X, y = load_data(with_melody=with_melody, melody_type=melody_type,
+                          min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence)
 
-    all_songs_words = ' '.join(load_vocab())
+    all_songs_words = ' '.join(load_vocab(X=X))
     tokenizer = init_tokenizer(all_songs_words)
 
     X = [lst[0] for lst in tokenizer.texts_to_sequences(X)]
     y = [lst[0] for lst in tokenizer.texts_to_sequences(y)]
-    y = to_categorical(y, num_classes=len(tokenizer.word_index)+1)
+    y = to_categorical(y, num_classes=len(tokenizer.word_index) + 1)
 
     if max_samples != -1:
         X = X[:max_samples]
         y = y[:max_samples]
-    
-    if with_melody:
+
+    if is_melody_model:
         if max_samples != -1:
             songs = songs[:max_samples, :]
         return X, y, tokenizer, songs
     else:
         return X, y, tokenizer
 
+
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$4
 
 def load_test_data(with_melody=False, melody_type='doc2vec'):
     parsed_songs = prepare_data(type='test')
@@ -215,19 +201,12 @@ def load_test_data(with_melody=False, melody_type='doc2vec'):
 
 def load_tokenized_test(tokenizer, with_melody=False, melody_type='doc2vec'):
     parsed_songs = load_test_data(with_melody=with_melody, melody_type=melody_type)
-
     for i, song_data in enumerate(parsed_songs):
         parsed_songs[i]['tokenized_X'] = [tokenizer.texts_to_sequences(song_data['X'])]
         parsed_songs[i]['tokenized_y'] = [tokenizer.texts_to_sequences(song_data['y'])]
         parsed_songs[i]['categorical_y'] = to_categorical(parsed_songs[i]['tokenized_y'], num_classes=len(tokenizer.word_index) + 1)
-
     return parsed_songs
 
-
-def init_tokenizer(text):
-    tokenizer = Tokenizer(filters='', oov_token='oov_token')
-    tokenizer.fit_on_texts([text])
-    return tokenizer
 
 
 def syllable_count(word):
@@ -244,3 +223,4 @@ def syllable_count(word):
     if count == 0:
         count += 1
     return count
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$4

@@ -5,7 +5,7 @@ DATA_PATH = "Data"
 MIDI_PATH = "midi_files"
 LYRICS_TRAIN = "lyrics_train_set.csv"
 LYRICS_TEST = "lyrics_test_set.csv"
-
+DIR_MELODY = 'Data/midi_files'
 LYRICS_DIR = 'Data/'
 TEXT_DATA = os.path.join(LYRICS_DIR, 'unified_lyrics_dump.txt')
 
