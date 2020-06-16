@@ -22,20 +22,20 @@ INPUT_LENGTH = 1
 MELODY_VEC_LENGTH = 150
 MELODY_CNN_VEC_LENGTH = 128
 
+def word2idx(text, tokenizer):
+    # word2idx("the food".split(), tokenizer)
+    encoded = tokenizer.texts_to_sequences(text)[0]
+    encoded = np.array(encoded)
+    return encoded
 
-def word2idx(word_list , encoder):
-  #word2idx("the food".split(), le_train)
-  return encoder.transform(word_list) #model_w2v.wv.vocab[word].index
-
-
-def idx2word(idx, encoder):
-  #idx2word([3981, 1481] ,le_train)
-  return encoder.inverse_transform(idx) #model_w2v.wv.index2word[idx]
-
+def idx2word(index, tokenizer):
+    for word, idx in tokenizer.word_index.items():
+        if idx == index:
+            return word
 
 class LyricsModel:
     def __init__(self,
-                 encoder,
+                 tokenizer,
                  bidirectional=False,
                  rnn_units=50,
                  rnn_type='lstm',
@@ -54,7 +54,7 @@ class LyricsModel:
             'lstm': LSTM,
             'gru': GRU,
         }
-        self.encoder = encoder
+        self.tokenizer = tokenizer
         self.batch_size = batch_size
         self.epochs = epochs
         self.rnn_type = rnn_types[rnn_type]
@@ -65,7 +65,7 @@ class LyricsModel:
         # load pre-trained word embeddings into an Embedding layer
         # note that we set trainable = False so as to keep the embeddings fixed
         self.EMBEDDING_DIM = embedding_dim
-        self.vocabulary_size = vocabulary_size
+        self.vocabulary_size = len(tokenizer.word_index) + 1 #vocabulary_size
         self.weight_matrix = weight_matrix
 
         embedding_layer = Embedding(input_dim=self.vocabulary_size, output_dim=self.EMBEDDING_DIM,
@@ -99,10 +99,7 @@ class LyricsModel:
         self.model = model
 
     def eval(self, test_data, test_data_len):
-        if test_data is None:
-            test_text = np.concatenate(self.test_df.EncodedText)
-        else:
-            test_text = test_data
+        test_text = test_data
         self.model.evaluate(test_text, verbose=self.verbose,
                             steps=math.ceil((test_data_len - 1) / self.batch_size))  # callbacks=self.callbacks,
 
@@ -148,21 +145,4 @@ class LyricsModel:
             prediction = self.predict_next_word(np.array(word_idxs))
             idx = self.sample(prediction[-1], temperature=0.7)
             word_idxs.append(idx)
-        return ' '.join(idx2word(word_idxs,self.encoder))
-
-def get_encoded(text, tokenizer):
-    encoded = tokenizer.texts_to_sequences([text])[0]
-    encoded = np.array(encoded)
-    return encoded
-
-
-def get_word(index, tokenizer):
-    for word, idx in tokenizer.word_index.items():
-        if idx == index:
-            return word
-
-
-def _perplexity(y_true, y_pred):
-    cross_entropy = categorical_crossentropy(y_true, y_pred)
-    perplexity = pow(2.0, cross_entropy)
-    return perplexity
+        return ' '.join(idx2word(word_idxs,self.tokenizer))
