@@ -73,12 +73,16 @@ class LyricsMelodyModel:
         combined = KL.Reshape((1, EMBEDDING_DIM + MELODY_VEC_LENGTH))(combined)
 
         # combined = rnn_type(rnn_units)(combined)
-        if self.rnn_type == 'lstm':
-            combined = KL.LSTM(rnn_units)(combined)
-        elif self.rnn_type == 'gru':
-            combined = KL.GRU(rnn_units)(combined)
         if bidirectional:
-            combined = KL.Bidirectional(combined)
+            if self.rnn_type == 'lstm':
+                combined = KL.Bidirectional(KL.LSTM(rnn_units))(combined)
+            elif self.rnn_type == 'gru':
+                combined = KL.Bidirectional(KL.GRU(rnn_units))(combined)
+        else:
+            if self.rnn_type == 'lstm':
+                combined = KL.LSTM(rnn_units)(combined)
+            elif self.rnn_type == 'gru':
+                combined = KL.GRU(rnn_units)(combined)
         if is_layer_norm:
             combined = LayerNormalization()(combined)
         combined = KL.Dense(num_words, kernel_regularizer=regularizers.l2(0.1), activation='softmax')(combined)
