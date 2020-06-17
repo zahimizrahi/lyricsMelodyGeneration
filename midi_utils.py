@@ -8,7 +8,6 @@ from consts import *
 import pickle
 import cv2
 
-
 def get_embedding_melody():
     local_pickle_file = os.path.join(DOC2VEC_MODELS_PATHS, 'dict_embedding_melody.pickle')
     if os.path.exists(local_pickle_file):
@@ -40,9 +39,6 @@ def get_dict_embedding(models_path = DOC2VEC_MODELS_PATHS , dir_melody = DIR_MEL
           print(f"Invalid song: {midi_file.name}")
     return dict(zip(song_names, songs_vectors))
 
-
-
-
 def check_if_melody(instrument, silence_threshold=0.7, mono_threshold=0.8, fs=10):
     """
     Check if the given instrument is Melody, Harmony or too silence
@@ -72,9 +68,7 @@ def check_if_melody(instrument, silence_threshold=0.7, mono_threshold=0.8, fs=10
 
     if mono_threshold <= float(n_mono)/n_notes:
         return True
-
     return False
-
 
 def number_to_note(number):
     """
@@ -107,8 +101,6 @@ def extract_notes_from_melody(instrument, window_size=50, fs=5, training_output=
     # find where is the first note
     melody_start = np.min(np.where((np.sum(instrument_timeframes, axis=0) > 0)))
     melody_piano_roll = instrument_timeframes[:, melody_start:]
-
-    # TODO: filter all timeframes after the last note
 
     # ignore the velocity of the melody
     melody_piano_roll = (melody_piano_roll > 0).astype(float)
@@ -148,8 +140,6 @@ def extract_notes_from_harmony(instrument, window_size=200, fs=5, training_outpu
     harmony_start = np.min(np.where((np.sum(instrument_timeframes, axis=0) > 0)))
     harmony_piano_roll = instrument_timeframes[:, harmony_start:]
 
-    # TODO: filter all timeframes after the last note
-
     # ignore the velocity of the melody
     harmony_piano_roll = (harmony_piano_roll > 0).astype(float)
 
@@ -173,10 +163,9 @@ def prepare_doc2vec(X):
     """
     Trainig a Doc2Vec model where doc == song
 
-    :param X: The samples
+    :param X: Songs Lyrics
     :return: Doc2Vec model
     """
-    #TODO: chane parameters of doc2vec
     documents = [TaggedDocument(doc, [i]) for i, doc in enumerate(X)]
     model = Doc2Vec(documents, vector_size=50, window=5, min_count=1, workers=4)
     return model
@@ -184,7 +173,6 @@ def prepare_doc2vec(X):
 
 def prepare_midi_embeddings_dataset(fs=10):
     # prepare 3 different samples - for drums, for harmony and for the melody
-
     X_drums = []
     X_melody = []
     X_harmony = []
