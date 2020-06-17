@@ -1,6 +1,6 @@
 import warnings
 warnings.filterwarnings("ignore")
-from data_processor import load_tokenized_data
+from data_processor import DataProcessor
 import gensim
 import pickle
 import os
@@ -13,7 +13,7 @@ GLOVE_DIR = 'glove_pretrained/'
 
 def extract_embedding_weights(tokenizer = None):
     if tokenizer is None:
-      X, y, tokenizer = load_tokenized_data()
+      X, y, tokenizer = DataProcessor().load_tokenized_data()
     # prepare embedding matrix
     word_index = tokenizer.word_index
     num_words = len(word_index) + 1
@@ -47,6 +47,6 @@ def load_pretrained_embedding():
             split_lines = map(lambda line: line.split(), lines)
             embedding = {parts[0]: np.asarray(parts[1:], dtype='float32') for parts in split_lines}
         # The pre-trained vectors do not have an unknown token, and currently the code just ignores out-of-vocabulary words when producing the co-occurrence counts.
-        unk_embedding = np.random.uniform(low=-0.04, high=0.04, size=(EMB_DIM,))
+        unk_embedding = np.random.uniform(low=-0.04, high=0.04, size=(EMBEDDING_DIM,))
         embedding["unk_embedding"] = unk_embedding
     return embedding

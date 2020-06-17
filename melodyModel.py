@@ -24,7 +24,7 @@ MELODY_VEC_LENGTH = 150
 MELODY_CNN_VEC_LENGTH = 128
 
 
-class LyricsMelodyModel:
+class LyricsMelodyModel1:
     def __init__(self, tokenizer, embedding_matrix,
                  rnn_units=50,
                  bidirectional=True,
@@ -74,15 +74,15 @@ class LyricsMelodyModel:
 
         # combined = rnn_type(rnn_units)(combined)
         if bidirectional:
-            if self.rnn_type == 'lstm':
-                combined = KL.Bidirectional(KL.LSTM(rnn_units))(combined)
-            elif self.rnn_type == 'gru':
-                combined = KL.Bidirectional(KL.GRU(rnn_units))(combined)
+          if self.rnn_type == 'lstm':
+              combined = KL.Bidirectional(KL.LSTM(rnn_units))(combined)
+          elif self.rnn_type == 'gru':
+              combined = KL.Bidirectional(KL.GRU(rnn_units))(combined)
         else:
-            if self.rnn_type == 'lstm':
-                combined = KL.LSTM(rnn_units)(combined)
-            elif self.rnn_type == 'gru':
-                combined = KL.GRU(rnn_units)(combined)
+          if self.rnn_type == 'lstm':
+              combined = KL.LSTM(rnn_units)(combined)
+          elif self.rnn_type == 'gru':
+              combined = KL.GRU(rnn_units)(combined)
         if is_layer_norm:
             combined = LayerNormalization()(combined)
         combined = KL.Dense(num_words, kernel_regularizer=regularizers.l2(0.1), activation='softmax')(combined)
@@ -109,7 +109,7 @@ class LyricsMelodyModel:
                   batch_size=self.batch_size,
                   verbose=self.verbose,
                   shuffle=self.shuffle,
-                  validation_split=validation_split,
+                  validation_split=0.1,
                   callbacks=self.callbacks
                   )
 
