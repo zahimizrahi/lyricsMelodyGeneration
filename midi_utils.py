@@ -264,16 +264,12 @@ def get_song_vector(midi_path, models, fs=10):
     drums_embedding = drum_model.infer_vector(drums_notes)
     melody_embedding = melody_model.infer_vector(melody_notes)
     harmony_embedding = harmony_model.infer_vector(harmony_notes)
-
     return np.hstack([drums_embedding, melody_embedding, harmony_embedding])
 
-
-#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+# OPTION 2 - EXTRACT EMBEDDING
 def extract_midi_piano_roll(midi_path, resize_time=128, fs=10):
     midi_obj = pretty_midi.PrettyMIDI(midi_path)
     results = midi_obj.get_piano_roll(fs=fs)
-
     results = cv2.resize(results, (resize_time, results.shape[0]))
 
     return results
-#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
