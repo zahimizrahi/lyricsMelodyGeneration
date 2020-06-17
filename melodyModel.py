@@ -10,7 +10,7 @@ from keras.layers import CuDNNLSTM as LSTM
 from keras.layers import CuDNNGRU as GRU
 import keras.backend as K
 import numpy as np
-from keras.backend import epsilon
+from keras.backend import epsilon, pow, categorical_crossentropy 
 from keras_layer_normalization import LayerNormalization
 from keras import regularizers
 from keras.models import Model
