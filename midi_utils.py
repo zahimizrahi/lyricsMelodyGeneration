@@ -271,5 +271,4 @@ def extract_midi_piano_roll(midi_path, resize_time=128, fs=10):
     midi_obj = pretty_midi.PrettyMIDI(midi_path)
     results = midi_obj.get_piano_roll(fs=fs)
     results = cv2.resize(results, (resize_time, results.shape[0]))
-
     return results
