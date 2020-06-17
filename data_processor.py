@@ -142,10 +142,10 @@ def load_vocab(X = None):
 
 def load_tokenized_data(is_melody_model=True, max_samples=-1,type='train', pre_embedding_melody=None, min_ignore_word_frequency=2, max_sentence=300, ignored_words = None, tokenizer = None):
     if is_melody_model:
-        X, y, songs = load_data(is_melody_model=is_melody_model, pre_embedding_melody=pre_embedding_melody,type=type,
+        X, y, songs, ignored_words = load_data(is_melody_model=is_melody_model, pre_embedding_melody=pre_embedding_melody,type=type,
                                  min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence, ignored_words = ignored_words)
     else:
-        X, y = load_data(type=type, is_melody_model=is_melody_model,min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence, ignored_words = ignored_words)
+        X, y, ignored_words = load_data(type=type, is_melody_model=is_melody_model,min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence, ignored_words = ignored_words)
 
     if tokenizer is None:
         all_songs_words = ' '.join(load_vocab(X=X))
@@ -164,9 +164,9 @@ def load_tokenized_data(is_melody_model=True, max_samples=-1,type='train', pre_e
     if is_melody_model:
         if max_samples != -1:
             songs = songs[:max_samples, :]
-        return X, y, tokenizer, songs
+        return X, y, tokenizer, songs, ignored_words
     else:
-        return np.array(X), np.array(y), tokenizer
+        return np.array(X), np.array(y), tokenizer, ignored_words
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$4
 
