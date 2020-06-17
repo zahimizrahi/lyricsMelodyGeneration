@@ -31,6 +31,7 @@ class DataProcessor:
         for w in [" '", '\.\.', '\.\.\.', '\.\.\.\.', '\.\.\.\.\.']:
             clean_lyrics = clean_lyrics.str.replace(w, ' ')
 
+        clean_lyrics = clean_lyrics.str.replace('...', '.')
         clean_lyrics = clean_lyrics.str.replace('&', '.')
         # remove words
         for w in ['chorus', '\-\-\-', '\-\-']:
@@ -114,7 +115,7 @@ class DataProcessor:
         if is_melody_model:
             # melody embedding handaling
             if pre_embedding_melody == None:
-                embedding_melody = get_embedding_melody()
+                embedding_melody = get_embedding_melody(melody_type=melody_type)
             else:
                 embedding_melody = pre_embedding_melody
 
@@ -141,7 +142,7 @@ class DataProcessor:
 
     def load_vocab(self, X = None):
         if X is None:
-          X, _= self.load_data(is_melody_model=False, min_ignore_word_frequency = -1, max_sentence = -1)
+          X, _,_= self.load_data(is_melody_model=False, min_ignore_word_frequency = -1, max_sentence = -1)
         return list(set(X.flatten()))
 
     def load_tokenized_data(self, is_melody_model=True, melody_type='doc2vec',max_samples=-1,type='train',
@@ -153,10 +154,10 @@ class DataProcessor:
                 raise ValueError('Please provide a ignored_words')
 
         if is_melody_model:
-            X, y, songs, catch = self.load_data(is_melody_model=is_melody_model, pre_embedding_melody=pre_embedding_melody,type=type,
+            X, y, songs, catch = self.load_data(is_melody_model=is_melody_model, melody_type=melody_type,  pre_embedding_melody=pre_embedding_melody,type=type,
                                      min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence, ignored_words = ignored_words)
         else:
-            X, y, catch = self.load_data(type=type, is_melody_model=is_melody_model,min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence, ignored_words = ignored_words)
+            X, y, catch = self.load_data(type=type, is_melody_model=is_melody_model, melody_type=melody_type , min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence, ignored_words = ignored_words)
 
         if tokenizer is None:
             all_songs_words = ' '.join(self.load_vocab(X=X))

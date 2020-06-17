@@ -8,14 +8,14 @@ from consts import *
 import pickle
 import cv2
 
-def get_embedding_melody():
+def get_embedding_melody(melody_type='doc2vec'):
     local_pickle_file = os.path.join(DOC2VEC_MODELS_PATHS, 'dict_embedding_melody.pickle')
-    if os.path.exists(local_pickle_file):
+    if os.path.exists(local_pickle_file) and melody_type == 'doc2vec':
         print(f'Load {local_pickle_file}')
         with open(local_pickle_file, 'rb') as handle:
             embedding_melody = pickle.load(handle)
     else:
-        embedding_melody = get_dict_embedding()
+        embedding_melody = get_dict_embedding(melody_type = melody_type)
     return embedding_melody
 
 def get_melody_models(models_path = DOC2VEC_MODELS_PATHS):
@@ -24,7 +24,7 @@ def get_melody_models(models_path = DOC2VEC_MODELS_PATHS):
               ['drums', 'melody', 'harmony']}
     return models
 
-def get_dict_embedding(models_path = DOC2VEC_MODELS_PATHS , dir_melody = DIR_MELODY ):
+def get_dict_embedding(models_path = DOC2VEC_MODELS_PATHS , dir_melody = DIR_MELODY, melody_type='doc2vec' ):
     models = get_melody_models(models_path = models_path)
     midi_paths = pathlib.Path(dir_melody)
     midi_files = list(midi_paths.glob('*'))
@@ -32,8 +32,11 @@ def get_dict_embedding(models_path = DOC2VEC_MODELS_PATHS , dir_melody = DIR_MEL
     song_names = []
     for midi_file in tqdm(midi_files, total=len(midi_files)):
         try:
-          songs_vectors.append(get_song_vector2(str(midi_file), models))
-          song_names.append(midi_file.name.strip().lower())
+            if melody_type == 'doc2vec':
+                songs_vectors.append(get_song_vector(str(midi_file), models))
+            else:
+                songs_vectors.append(extract_midi_piano_roll(str(midi_file), models))
+            song_names.append(midi_file.name.strip().lower())
         except Exception as e:
           print(e)
           print(f"Invalid song: {midi_file.name}")
