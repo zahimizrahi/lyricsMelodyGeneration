@@ -109,7 +109,7 @@ class LyricsMelodyModel:
                   batch_size=self.batch_size,
                   verbose=self.verbose,
                   shuffle=self.shuffle,
-                  validation_split=0.1,
+                  validation_split=validation_split,
                   callbacks=self.callbacks
                   )
 
