@@ -9,7 +9,7 @@ import itertools
 from keras.preprocessing.text import Tokenizer
 from keras.utils import to_categorical
 from tqdm import tqdm
-from midi_utils import get_song_vector, extract_midi_piano_roll
+from midi_utils import *
 import joblib
 from consts import *
 import pandas as pd
@@ -99,8 +99,8 @@ def prepare_data(min_ignore_word_frequency=2, max_sentence=300, type='train', ig
 
     return df_train, ignored_words
 
-def load_data(is_melody_model=True, pre_embedding_melody=None, min_ignore_word_frequency=2, max_sentence=300):
-    df_train, ignored_words = prepare_data(min_ignore_word_frequency=min_ignore_word_frequency,max_sentence=max_sentence)
+def load_data(is_melody_model=True, pre_embedding_melody=None, type='train', min_ignore_word_frequency=2, max_sentence=300, ignored_words = None):
+    df_train, ignored_words = prepare_data(min_ignore_word_frequency=min_ignore_word_frequency,max_sentence=max_sentence, type=type, ignored_words = ignored_words)
     text_x = np.concatenate(df_train.X)
     text_y = np.concatenate(df_train.y)
     X = np.hstack(text_x)
@@ -109,30 +109,26 @@ def load_data(is_melody_model=True, pre_embedding_melody=None, min_ignore_word_f
     if is_melody_model:
         # melody embedding handaling
         if pre_embedding_melody == None:
-            local_pickle_file = os.path.join(DOC2VEC_MODELS_PATHS, 'dict_embedding_melody.pickle')
-            if os.path.exists(local_pickle_file):
-                print(f'Load {local_pickle_file}')
-                with open(local_pickle_file, 'rb') as handle:
-                    pre_embedding_melody = pickle.load(handle)
-            else:
-                pre_embedding_melody = get_dict_embedding()
+            embedding_melody = get_embedding_melody()
+        else:
+            embedding_melody = pre_embedding_melody
 
-        df_train = df_train[df_train['MelodyPath'].isin(pre_embedding_melody.keys())]
+        df_train = df_train[df_train['MelodyPath'].isin(embedding_melody.keys())]
         # test_df = test_df[test_df['MelodyPath'].isin(pre_embedding_melody.keys())]
-        df_train['EmbeddingMelody'] = df_train.MelodyPath.apply(lambda melody: pre_embedding_melody[melody])
+        df_train['EmbeddingMelody'] = df_train.MelodyPath.apply(lambda melody: embedding_melody[melody])
         df_train = df_train.reset_index(drop=True)
         # test_df['EmbeddingMelody'] = test_df.MelodyPath.apply(lambda melody: embedding_melody[melody])
         df_train["EmbeddingMelody_multi"] = df_train.apply(lambda row: np.array([row["EmbeddingMelody"]] * len(row.X)),
                                                            axis=1)
         songs = np.vstack(df_train["EmbeddingMelody_multi"])
-        # end melody embedding handaling
+        # End melody embedding handaling
 
         text_x = np.concatenate(df_train.X)
         text_y = np.concatenate(df_train.y)
         X = np.hstack(text_x)
         y = np.hstack(text_y)
-        return X, y, songs
-    return X, y
+        return X, y, songs, ignored_words
+    return X, y, ignored_words
 
 def init_tokenizer(text):
     tokenizer = Tokenizer(filters='', oov_token='oov_token')
@@ -144,15 +140,17 @@ def load_vocab(X = None):
       X, _= load_data(is_melody_model=False, min_ignore_word_frequency = -1, max_sentence = -1)
     return list(set(X.flatten()))
 
-def load_tokenized_data(is_melody_model=True, max_samples=-1, pre_embedding_melody=None, min_ignore_word_frequency=2, max_sentence=300):
+def load_tokenized_data(is_melody_model=True, max_samples=-1,type='train', pre_embedding_melody=None, min_ignore_word_frequency=2, max_sentence=300, ignored_words = None, tokenizer = None):
     if is_melody_model:
-        X, y, songs = load_data(is_melody_model=is_melody_model, pre_embedding_melody=pre_embedding_melody,
-                                 min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence)
+        X, y, songs = load_data(is_melody_model=is_melody_model, pre_embedding_melody=pre_embedding_melody,type=type,
+                                 min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence, ignored_words = ignored_words)
     else:
-        X, y = load_data(is_melody_model=is_melody_model,min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence)
+        X, y = load_data(type=type, is_melody_model=is_melody_model,min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence, ignored_words = ignored_words)
 
-    all_songs_words = ' '.join(load_vocab(X=X))
-    tokenizer = init_tokenizer(all_songs_words)
+    if tokenizer is None:
+        all_songs_words = ' '.join(load_vocab(X=X))
+        tokenizer = init_tokenizer(all_songs_words)
+
     X = [lst[0] for lst in tokenizer.texts_to_sequences(X)]
     y = [lst[0] for lst in tokenizer.texts_to_sequences(y)]
 
@@ -172,34 +170,35 @@ def load_tokenized_data(is_melody_model=True, max_samples=-1, pre_embedding_melo
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$4
 
-def load_test_data(with_melody=False, melody_type='doc2vec'):
-    parsed_songs = prepare_data(type='test')
-
+def load_test_data(ignored_words, with_melody=False, melody_type='doc2vec'):
+    df_test, _ = prepare_data(type='test', ignored_words = ignored_words)
     if with_melody:
-        models = {name: joblib.load(os.path.join(DOC2VEC_MODELS_PATHS, f'{name}_model.joblib')) for name in
-                  ['drums', 'melody', 'harmony']}
-
-        for i, song_data in tqdm(enumerate(parsed_songs), total=len(parsed_songs), desc='Loading the songs embedding'):
+        models = get_melody_models()
+        for row in df_test.iterrows():
             try:
-                if melody_type == 'doc2vec':
-                    parsed_songs[i]['melody_embedding'] = np.array(get_song_vector(song_data['midi_path'], models))
-                else:
-                    parsed_songs[i]['melody_embedding'] = extract_midi_piano_roll(song_data['midi_path'])
-
+                # if melody_type == 'doc2vec':
+                # use pre_embedding_melody --> df_test['EmbeddingMelody'] = df_test.MelodyPath.apply(lambda melody: pre_embedding_melody[melody])
+                row['EmbeddingMelody'] = np.array(get_song_vector(row["MelodyPath"], models))
+                # else:
+                #     parsed_songs[i]['melody_embedding'] = extract_midi_piano_roll(song_data['midi_path'])
             except Exception as e:
+                row['EmbeddingMelody'] = None
                 print(r"Couldn't load {}, issue with the midi file.".format(song_data['midi_path']))
-                continue
-
-    return parsed_songs
+    return df_test
 
 
-def load_tokenized_test(tokenizer, with_melody=False, melody_type='doc2vec'):
-    parsed_songs = load_test_data(with_melody=with_melody, melody_type=melody_type)
-    for i, song_data in enumerate(parsed_songs):
-        parsed_songs[i]['tokenized_X'] = [tokenizer.texts_to_sequences(song_data['X'])]
-        parsed_songs[i]['tokenized_y'] = [tokenizer.texts_to_sequences(song_data['y'])]
-        parsed_songs[i]['categorical_y'] = to_categorical(parsed_songs[i]['tokenized_y'], num_classes=len(tokenizer.word_index) + 1)
-    return parsed_songs
+def load_tokenized_test(tokenizer, is_melody_model=False, melody_type='doc2vec', ignored_words = None):
+    if tokenizer is None:
+        raise ValueError('Please provide a pre-training tokenizer')
+    # parsed_songs = load_test_data(with_melody=with_melody, melody_type=melody_type, ignored_words = ignored_words)
+    #
+    # for i, song_data in enumerate(parsed_songs):
+    #     parsed_songs[i]['tokenized_X'] = [tokenizer.texts_to_sequences(song_data['X'])]
+    #     parsed_songs[i]['tokenized_y'] = [tokenizer.texts_to_sequences(song_data['y'])]
+    #     parsed_songs[i]['categorical_y'] = to_categorical(parsed_songs[i]['tokenized_y'], num_classes=len(tokenizer.word_index) + 1)
+    #
+    return load_tokenized_data(tokenizer = tokenizer, is_melody_model=is_melody_model, ignored_words = ignored_words, type='test')
+    # return parsed_songs
 
 
 

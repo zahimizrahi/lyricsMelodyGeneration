@@ -103,7 +103,7 @@ class LyricsMelodyModel:
         model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
         # fit network
-        model.fit(X, y,
+        return model.fit(X, y,
                   epochs=self.epochs,
                   batch_size=self.batch_size,
                   verbose=self.verbose,

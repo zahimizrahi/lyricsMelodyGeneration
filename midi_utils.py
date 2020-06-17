@@ -6,13 +6,27 @@ from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from tqdm import tqdm
 from consts import *
 import pickle
-
 import cv2
 
-def get_dict_embedding(models_path = DOC2VEC_MODELS_PATHS , dir_melody = DIR_MELODY ):
+
+def get_embedding_melody():
+    local_pickle_file = os.path.join(DOC2VEC_MODELS_PATHS, 'dict_embedding_melody.pickle')
+    if os.path.exists(local_pickle_file):
+        print(f'Load {local_pickle_file}')
+        with open(local_pickle_file, 'rb') as handle:
+            embedding_melody = pickle.load(handle)
+    else:
+        embedding_melody = get_dict_embedding()
+    return embedding_melody
+
+def get_melody_models(models_path = DOC2VEC_MODELS_PATHS):
     print('Load melody embbeding melodies')
     models = {name: joblib.load(os.path.join(models_path, f'{name}_model.joblib')) for name in
-                  ['drums', 'melody', 'harmony']}
+              ['drums', 'melody', 'harmony']}
+    return models
+
+def get_dict_embedding(models_path = DOC2VEC_MODELS_PATHS , dir_melody = DIR_MELODY ):
+    models = get_melody_models(models_path = models_path)
     midi_paths = pathlib.Path(dir_melody)
     midi_files = list(midi_paths.glob('*'))
     songs_vectors = []
