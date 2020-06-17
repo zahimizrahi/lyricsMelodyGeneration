@@ -98,12 +98,9 @@ class LyricsMelodyModel:
         self.tokenizer = tokenizer
 
     def train(self, X, y, validation_split=0.1):
-        model = self.model
-
-        model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-
+        self.model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
         # fit network
-        return model.fit(X, y,
+        return self.model.fit(X, y,
                   epochs=self.epochs,
                   batch_size=self.batch_size,
                   verbose=self.verbose,
