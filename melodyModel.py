@@ -16,13 +16,21 @@ from keras import regularizers
 from keras.models import Model
 from keras.preprocessing.sequence import pad_sequences
 from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
-
-# from tensorflow.keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
 EMBEDDING_DIM = 300
 INPUT_LENGTH = 1
 MELODY_VEC_LENGTH = 150
 MELODY_CNN_VEC_LENGTH = 128
 
+def word2idx(text, tokenizer):
+    # word2idx("the food".split(), tokenizer)
+    encoded = tokenizer.texts_to_sequences(text)[0]
+    encoded = np.array(encoded)
+    return encoded
+
+def idx2word(index, tokenizer):
+    for word, idx in tokenizer.word_index.items():
+        if idx == index:
+            return word
 
 class LyricsMelodyModel:
     def __init__(self, tokenizer, embedding_matrix,
@@ -134,24 +142,11 @@ class LyricsMelodyModel:
             word_token = np.random.choice(words_tokens, p=words_probs)
 
             # map predicted word index to word
-            out_word = get_word(word_token, self.tokenizer)
+            out_word = idx2word(word_token, self.tokenizer)
             # append to input
             in_text, result = out_word, result + ' ' + out_word
         return result
 
-def get_encoded(text, tokenizer):
-    encoded = tokenizer.texts_to_sequences([text])[0]
-    encoded = np.array(encoded)
-    return encoded
 
 
-def get_word(index, tokenizer):
-    for word, idx in tokenizer.word_index.items():
-        if idx == index:
-            return word
 
-
-def _perplexity(y_true, y_pred):
-    cross_entropy = categorical_crossentropy(y_true, y_pred)
-    perplexity = pow(2.0, cross_entropy)
-    return perplexity
