@@ -24,7 +24,7 @@ MELODY_VEC_LENGTH = 150
 MELODY_CNN_VEC_LENGTH = 128
 
 
-class LyricsMelodyModel1:
+class LyricsMelodyModel:
     def __init__(self, tokenizer, embedding_matrix,
                  rnn_units=50,
                  bidirectional=True,
