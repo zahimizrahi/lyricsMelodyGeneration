@@ -103,7 +103,7 @@ class LyricsMelodyModel:
         run_name = f'{run_time}_b{self.batch_size}_epochs{self.epochs}'
 
         self.callbacks = [
-            EarlyStopping(monitor='val_accuracy', patience=self.patience, verbose=self.verbose),
+            EarlyStopping(patience=self.patience, verbose=self.verbose),
             ModelCheckpoint(f'{run_name}.h5', verbose=0, save_best_only=True, save_weights_only=True)]
 
         self.model = model
