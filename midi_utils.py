@@ -29,7 +29,7 @@ def get_melody_models(models_path = DOC2VEC_MODELS_PATHS):
     return models
 
 def get_dict_embedding(models_path = DOC2VEC_MODELS_PATHS , dir_melody = DIR_MELODY, melody_type='doc2vec' ):
-    models = get_melody_models(models_path = models_path) if melody_type=='doc2vec' else  getNoteEmbeddingDict()
+    models = get_melody_models(models_path = models_path) if melody_type=='doc2vec' else  ExtractGloveEmbeddingDict()
     midi_paths = pathlib.Path(dir_melody)
     midi_files = list(midi_paths.glob('*'))
     songs_vectors = []
@@ -39,13 +39,7 @@ def get_dict_embedding(models_path = DOC2VEC_MODELS_PATHS , dir_melody = DIR_MEL
             if melody_type == 'doc2vec':
                 songs_vectors.append(get_song_vector(str(midi_file), models))
             else:
-                # embedding_dict = create_note_emb_dict(noteEmbeddingsUrl)
-                # embeddedSequenceMidiDict = {k.lower(): v for k, v in embedding_dict.items()}
-                songs_vectors.append(get_notes_embeddings(emb_dict, str(midi_file), dim_size=300))
-
-                ############################################################3
-
-                # songs_vectors.append(extract_midi_piano_roll(str(midi_file)))
+                songs_vectors.append(get_notes_embeddings(models, str(midi_file), dim_size=300))
             song_names.append(midi_file.name.strip().lower())
         except Exception as e:
           print(e)
@@ -94,7 +88,6 @@ def number_to_note(number):
         return 'r'
     else:
         return pretty_midi.note_number_to_name(number)
-
 
 def extract_notes_from_melody(instrument, window_size=50, fs=5, training_output=True):
     """
@@ -171,21 +164,8 @@ def extract_notes_from_harmony(instrument, window_size=200, fs=5, training_outpu
     else:
         return ['-'.join([number_to_note(note_num) for note_num in np.where(note==1)[0]]) for note in harmony_piano_roll.T]
 
-
-def prepare_doc2vec(X):
-    """
-    Trainig a Doc2Vec model where doc == song
-
-    :param X: Songs Lyrics
-    :return: Doc2Vec model
-    """
-    documents = [TaggedDocument(doc, [i]) for i, doc in enumerate(X)]
-    model = Doc2Vec(documents, vector_size=50, window=5, min_count=1, workers=4)
-    return model
-
-
 def prepare_midi_embeddings_dataset(fs=10):
-    # prepare 3 different samples - for drums, for harmony and for the melody
+    # prepare 3 different samples - drums, harmony and melody
     X_drums = []
     X_melody = []
     X_harmony = []
@@ -279,13 +259,7 @@ def get_song_vector(midi_path, models, fs=10):
     harmony_embedding = harmony_model.infer_vector(harmony_notes)
     return np.hstack([drums_embedding, melody_embedding, harmony_embedding])
 
-# # OPTION 2 - EXTRACT GLOVE EMBEDDING
-# def extract_midi_piano_roll(midi_path, resize_time=128, fs=10):
-#     midi_obj = pretty_midi.PrettyMIDI(midi_path)
-#     results = midi_obj.get_piano_roll(fs=fs)
-#     results = cv2.resize(results, (resize_time, results.shape[0]))
-#     return results
-
+# OPTION 2 - EXTRACT GLOVE EMBEDDING
 
 def getNotesEmbedded(embeddings_dict, notesList, dim_size=300):
     total_vec = np.zeros(dim_size)
@@ -309,7 +283,6 @@ def getNotesEmbedded(embeddings_dict, notesList, dim_size=300):
     noteEmbeddings = total_vec / total_num_of_notes
     return noteEmbeddings
 
-
 def parse_midi(path):
     midi = None
     try:
@@ -318,7 +291,6 @@ def parse_midi(path):
     except:
         pass
     return midi
-
 
 def get_percent_monophonic(pm_instrument_roll):
     mask = pm_instrument_roll.T > 0
@@ -332,10 +304,8 @@ def get_percent_monophonic(pm_instrument_roll):
     else:  # no notes of any kind
         return 0.0
 
-
 def filter_monophonic(pm_instruments, percent_monophonic=0.99):
     return [i for i in pm_instruments if get_percent_monophonic(i.get_piano_roll()) >= percent_monophonic]
-
 
 def get_note_string(path):
     midi = parse_midi(path)
@@ -346,7 +316,6 @@ def get_note_string(path):
             buff += ' '.join([str(n.pitch) for n in instrument.notes]) + ' '
         return buff
     return ''
-
 
 def get_notes_embeddings(embeddings_dict, midi_path, dim_size=300):
     notes_string = get_note_string(midi_path)
@@ -368,12 +337,12 @@ def get_notes_embeddings(embeddings_dict, midi_path, dim_size=300):
             instr_vec += embeddings_dict[note] if note in embeddings_dict else embeddings_dict['<unk>']
         total_num_of_notes += num_of_notes
         total_vec += instr_vec
-        # total_vec *= instr_vec / num_of_instr
     return total_vec / total_num_of_notes
 
-
-# get glove embedding
-def getNoteEmbeddingDict(noteEmbeddingsUrl=NOTE_EMBEDDING_PATH):
+# function to build a embedding to midi files folders - based on glove embedding - 300 dim
+# for more information: https://github.com/brangerbriz/midi-glove
+# extract glove embedding
+def ExtractGloveEmbeddingDict(noteEmbeddingsUrl=NOTE_EMBEDDING_PATH):
     embeddings_dict = {}
     with open(noteEmbeddingsUrl) as f:
         lines = f.readlines()
@@ -383,13 +352,12 @@ def getNoteEmbeddingDict(noteEmbeddingsUrl=NOTE_EMBEDDING_PATH):
             embeddings_dict[emb[0]] = np.array([float(num) for num in emb[1:]])
     return embeddings_dict
 
-
-def create_note_emb_dict(noteEmbeddingsUrl=NOTE_EMBEDDING_PATH):
-    emb_dict = getNoteEmbeddingDict(noteEmbeddingsUrl=noteEmbeddingsUrl)
-
-    return_dict = {}
+# build embedding dict to all the files based on glove embedding
+def create_note_embedding_dict(noteEmbeddingsUrl=NOTE_EMBEDDING_PATH):
+    emb_dict = ExtractGloveEmbeddingDict(noteEmbeddingsUrl=noteEmbeddingsUrl)
+    embedding_dict = {}
     for i, song in enumerate(tqdm(os.listdir(DIR_MELODY))):
         midi_path = os.path.join(DIR_MELODY, song)
         song_embedding = get_notes_embeddings(emb_dict, midi_path, dim_size=300)
-        return_dict[song] = song_embedding
-    return return_dict
+        embedding_dict[song] = song_embedding
+    return embedding_dict
