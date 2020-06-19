@@ -9,6 +9,7 @@ import pickle
 import cv2
 import joblib
 import pathlib
+NOTE_EMBEDDING_PATH = './vectors_d300.txt'
 
 def get_embedding_melody(melody_type='doc2vec'):
     pickle_name = 'dict_embedding_melody.pickle' if melody_type=='doc2vec' else 'songs_embedding_glove_dict.pickle'
@@ -40,8 +41,7 @@ def get_dict_embedding(models_path = DOC2VEC_MODELS_PATHS , dir_melody = DIR_MEL
             else:
                 # embedding_dict = create_note_emb_dict(noteEmbeddingsUrl)
                 # embeddedSequenceMidiDict = {k.lower(): v for k, v in embedding_dict.items()}
-                midi_path = os.path.join(DIR_MELODY, song)
-                songs_vectors.append(get_notes_embeddings(emb_dict, midi_path, dim_size=300))
+                songs_vectors.append(get_notes_embeddings(emb_dict, str(midi_file), dim_size=300))
 
                 ############################################################3
 
@@ -388,8 +388,8 @@ def create_note_emb_dict(noteEmbeddingsUrl=NOTE_EMBEDDING_PATH):
     emb_dict = getNoteEmbeddingDict(noteEmbeddingsUrl=noteEmbeddingsUrl)
 
     return_dict = {}
-    for i, song in enumerate(os.listdir(MIDI_PATH)):
-        midi_path = os.path.join(MIDI_PATH, song)
+    for i, song in enumerate(tqdm(os.listdir(DIR_MELODY))):
+        midi_path = os.path.join(DIR_MELODY, song)
         song_embedding = get_notes_embeddings(emb_dict, midi_path, dim_size=300)
         return_dict[song] = song_embedding
     return return_dict

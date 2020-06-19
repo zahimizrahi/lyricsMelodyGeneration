@@ -117,7 +117,7 @@ class DataProcessor:
                 embedding_melody = get_embedding_melody(melody_type=melody_type)
             else:
                 embedding_melody = pre_embedding_melody
-
+            embedding_melody = {k.lower(): v for k, v in embedding_melody.items() if len(v) > 0}
             df = df[df['MelodyPath'].isin(embedding_melody.keys())]
             df['EmbeddingMelody'] = df.MelodyPath.apply(lambda melody: embedding_melody[melody])
             df = df.reset_index(drop=True)
