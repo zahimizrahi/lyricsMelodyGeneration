@@ -7,6 +7,8 @@ from tqdm import tqdm
 from consts import *
 import pickle
 import cv2
+import joblib
+import pathlib
 
 def get_embedding_melody(melody_type='doc2vec'):
     local_pickle_file = os.path.join(DOC2VEC_MODELS_PATHS, 'dict_embedding_melody.pickle')
@@ -35,7 +37,7 @@ def get_dict_embedding(models_path = DOC2VEC_MODELS_PATHS , dir_melody = DIR_MEL
             if melody_type == 'doc2vec':
                 songs_vectors.append(get_song_vector(str(midi_file), models))
             else:
-                songs_vectors.append(extract_midi_piano_roll(str(midi_file), models))
+                songs_vectors.append(extract_midi_piano_roll(str(midi_file)))
             song_names.append(midi_file.name.strip().lower())
         except Exception as e:
           print(e)

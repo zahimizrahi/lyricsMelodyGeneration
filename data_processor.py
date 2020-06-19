@@ -31,7 +31,6 @@ class DataProcessor:
         for w in [" '", '\.\.', '\.\.\.', '\.\.\.\.', '\.\.\.\.\.']:
             clean_lyrics = clean_lyrics.str.replace(w, ' ')
 
-        clean_lyrics = clean_lyrics.str.replace('...', '.')
         clean_lyrics = clean_lyrics.str.replace('&', '.')
         # remove words
         for w in ['chorus', '\-\-\-', '\-\-']:
