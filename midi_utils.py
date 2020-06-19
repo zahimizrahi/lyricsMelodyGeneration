@@ -11,8 +11,9 @@ import joblib
 import pathlib
 
 def get_embedding_melody(melody_type='doc2vec'):
-    local_pickle_file = os.path.join(DOC2VEC_MODELS_PATHS, 'dict_embedding_melody.pickle')
-    if os.path.exists(local_pickle_file) and melody_type == 'doc2vec':
+    pickle_name = 'dict_embedding_melody.pickle' if melody_type=='doc2vec' else 'songs_embedding_glove_dict.pickle'
+    local_pickle_file = os.path.join(DOC2VEC_MODELS_PATHS, pickle_name)
+    if os.path.exists(local_pickle_file):
         print(f'Load {local_pickle_file}')
         with open(local_pickle_file, 'rb') as handle:
             embedding_melody = pickle.load(handle)
@@ -27,7 +28,7 @@ def get_melody_models(models_path = DOC2VEC_MODELS_PATHS):
     return models
 
 def get_dict_embedding(models_path = DOC2VEC_MODELS_PATHS , dir_melody = DIR_MELODY, melody_type='doc2vec' ):
-    models = get_melody_models(models_path = models_path)
+    models = get_melody_models(models_path = models_path) if melody_type=='doc2vec' else  getNoteEmbeddingDict()
     midi_paths = pathlib.Path(dir_melody)
     midi_files = list(midi_paths.glob('*'))
     songs_vectors = []
@@ -37,7 +38,14 @@ def get_dict_embedding(models_path = DOC2VEC_MODELS_PATHS , dir_melody = DIR_MEL
             if melody_type == 'doc2vec':
                 songs_vectors.append(get_song_vector(str(midi_file), models))
             else:
-                songs_vectors.append(extract_midi_piano_roll(str(midi_file)))
+                # embedding_dict = create_note_emb_dict(noteEmbeddingsUrl)
+                # embeddedSequenceMidiDict = {k.lower(): v for k, v in embedding_dict.items()}
+                midi_path = os.path.join(DIR_MELODY, song)
+                songs_vectors.append(get_notes_embeddings(emb_dict, midi_path, dim_size=300))
+
+                ############################################################3
+
+                # songs_vectors.append(extract_midi_piano_roll(str(midi_file)))
             song_names.append(midi_file.name.strip().lower())
         except Exception as e:
           print(e)
@@ -271,9 +279,117 @@ def get_song_vector(midi_path, models, fs=10):
     harmony_embedding = harmony_model.infer_vector(harmony_notes)
     return np.hstack([drums_embedding, melody_embedding, harmony_embedding])
 
-# OPTION 2 - EXTRACT EMBEDDING
-def extract_midi_piano_roll(midi_path, resize_time=128, fs=10):
-    midi_obj = pretty_midi.PrettyMIDI(midi_path)
-    results = midi_obj.get_piano_roll(fs=fs)
-    results = cv2.resize(results, (resize_time, results.shape[0]))
-    return results
+# # OPTION 2 - EXTRACT GLOVE EMBEDDING
+# def extract_midi_piano_roll(midi_path, resize_time=128, fs=10):
+#     midi_obj = pretty_midi.PrettyMIDI(midi_path)
+#     results = midi_obj.get_piano_roll(fs=fs)
+#     results = cv2.resize(results, (resize_time, results.shape[0]))
+#     return results
+
+
+def getNotesEmbedded(embeddings_dict, notesList, dim_size=300):
+    total_vec = np.zeros(dim_size)
+    total_num_of_notes = 0
+    notesString = ''.join(notesList)
+    notes_by_instr = notesString.split('TRACK_START ')
+    for all_notes in notes_by_instr:
+        if all_notes == '':
+            continue
+        notes = all_notes.split(' ')
+        instr_vec = np.zeros(dim_size)
+        num_of_notes = 0
+        for note in enumerate(notes):
+            num_of_notes += 1
+            if note == '':
+                continue
+            instr_vec += embeddings_dict[note] if note in embeddings_dict else embeddings_dict['<unk>']
+        total_num_of_notes += num_of_notes
+        total_vec += instr_vec
+
+    noteEmbeddings = total_vec / total_num_of_notes
+    return noteEmbeddings
+
+
+def parse_midi(path):
+    midi = None
+    try:
+        midi = pretty_midi.PrettyMIDI(path)
+        midi.remove_invalid_notes()
+    except:
+        pass
+    return midi
+
+
+def get_percent_monophonic(pm_instrument_roll):
+    mask = pm_instrument_roll.T > 0
+    notes = np.sum(mask, axis=1)
+    n = np.count_nonzero(notes)
+    single = np.count_nonzero(notes == 1)
+    if single > 0:
+        return float(single) / float(n)
+    elif single == 0 and n > 0:
+        return 0.0
+    else:  # no notes of any kind
+        return 0.0
+
+
+def filter_monophonic(pm_instruments, percent_monophonic=0.99):
+    return [i for i in pm_instruments if get_percent_monophonic(i.get_piano_roll()) >= percent_monophonic]
+
+
+def get_note_string(path):
+    midi = parse_midi(path)
+    if midi is not None:
+        buff = ''
+        for instrument in filter_monophonic(midi.instruments, 0):
+            buff += 'TRACK_START '
+            buff += ' '.join([str(n.pitch) for n in instrument.notes]) + ' '
+        return buff
+    return ''
+
+
+def get_notes_embeddings(embeddings_dict, midi_path, dim_size=300):
+    notes_string = get_note_string(midi_path)
+    if not notes_string:
+        return ''
+    total_vec = np.zeros(dim_size)
+    total_num_of_notes = 0
+    notes_by_instr = notes_string.split('TRACK_START ')
+    for all_notes in notes_by_instr:
+        if all_notes == '':
+            continue
+        notes = all_notes.split(' ')
+        instr_vec = np.zeros(dim_size)
+        num_of_notes = 0
+        for note in enumerate(notes):
+            num_of_notes += 1
+            if note == '':
+                continue
+            instr_vec += embeddings_dict[note] if note in embeddings_dict else embeddings_dict['<unk>']
+        total_num_of_notes += num_of_notes
+        total_vec += instr_vec
+        # total_vec *= instr_vec / num_of_instr
+    return total_vec / total_num_of_notes
+
+
+# get glove embedding
+def getNoteEmbeddingDict(noteEmbeddingsUrl=NOTE_EMBEDDING_PATH):
+    embeddings_dict = {}
+    with open(noteEmbeddingsUrl) as f:
+        lines = f.readlines()
+        for line in lines:
+            line = line.replace('\n', '')
+            emb = line.split(' ')
+            embeddings_dict[emb[0]] = np.array([float(num) for num in emb[1:]])
+    return embeddings_dict
+
+
+def create_note_emb_dict(noteEmbeddingsUrl=NOTE_EMBEDDING_PATH):
+    emb_dict = getNoteEmbeddingDict(noteEmbeddingsUrl=noteEmbeddingsUrl)
+
+    return_dict = {}
+    for i, song in enumerate(os.listdir(MIDI_PATH)):
+        midi_path = os.path.join(MIDI_PATH, song)
+        song_embedding = get_notes_embeddings(emb_dict, midi_path, dim_size=300)
+        return_dict[song] = song_embedding
+    return return_dict
