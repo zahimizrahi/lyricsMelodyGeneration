@@ -35,6 +35,7 @@ def idx2word(index, tokenizer):
 class LyricsMelodyModel:
     def __init__(self, tokenizer, embedding_matrix,
                  rnn_units=50,
+                 melody_vec_dim = 150,
                  bidirectional=True,
                  rnn_type='lstm',
                  dropout=0.3,
@@ -68,7 +69,7 @@ class LyricsMelodyModel:
                                        input_length=INPUT_LENGTH,
                                        trainable=train_embedding)
         lyrics_input = KL.Input(shape=(INPUT_LENGTH,))
-        melody_input = KL.Input(shape=(MELODY_VEC_LENGTH,))
+        melody_input = KL.Input(shape=(melody_vec_dim,))
 
         lyrics = embedding_layer(lyrics_input)
         lyrics = KL.Flatten()(lyrics)
@@ -78,7 +79,7 @@ class LyricsMelodyModel:
             combined = KL.Concatenate()([lyrics, melody])
         else:
             combined = KL.Concatenate()([lyrics, melody_input])
-        combined = KL.Reshape((1, EMBEDDING_DIM + MELODY_VEC_LENGTH))(combined)
+        combined = KL.Reshape((1, EMBEDDING_DIM + melody_vec_dim))(combined)
 
         # combined = rnn_type(rnn_units)(combined)
         if bidirectional:
