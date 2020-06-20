@@ -166,6 +166,8 @@ class DataProcessor:
             X, y, catch = self.load_data(type=type, is_melody_model=is_melody_model, melody_type=melody_type,
                                          min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence,
                                          ignored_words=ignored_words)
+            if type == 'test':
+                return np.array(X), np.array(y), catch
 
             catch['tokenizer'], X, y = self.fit_transfer_tokenizer(tokenizer, X, y)
             if max_samples != -1:
@@ -178,8 +180,9 @@ class DataProcessor:
             X, y, songs, catch = self.load_data(is_melody_model=is_melody_model, melody_type=melody_type,  pre_embedding_melody=pre_embedding_melody,type=type,
                                          min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence, ignored_words = ignored_words)
 
-            tokenizer, X, y = self.fit_transfer_tokenizer(tokenizer, X, y)
-            catch['tokenizer'] = tokenizer
+            if type == 'train':
+                tokenizer, X, y = self.fit_transfer_tokenizer(tokenizer, X, y)
+                catch['tokenizer'] = tokenizer
             y = to_categorical(y, num_classes=len(tokenizer.word_index) + 1)
 
             if max_samples != -1:
@@ -198,16 +201,18 @@ class DataProcessor:
             df = df.reset_index(drop=True)
 
             word_model = load_pretrained_embedding()
-            all_songs_words = ' '.join(list(set(np.array(sequences).flatten())))
-            tokenizer = self.init_tokenizer(text = all_songs_words, text_not_flatten = False)
+            if tokenizer is None:
+                all_songs_words = ' '.join(list(set(np.array(sequences).flatten())))
+                tokenizer = self.init_tokenizer(text = all_songs_words, text_not_flatten = False)
+
             vocab_size = len(tokenizer.word_index) + 1
             allNoteEmbeddingsDict = ExtractGloveEmbeddingDict()
 
             print('\nprepare train sets\n')
             X, y, locDict = concatinatingNotesAndWord(wordSequencesDict=wordSequencesDict,
-                                                                  noteSequencesDict=noteSequencesDict,
-                                                                  word_model=word_model,
-                                                                  allNoteEmbeddingsDict=allNoteEmbeddingsDict,
-                                                                  sequences=sequences)
+                                                      noteSequencesDict=noteSequencesDict,
+                                                      word_model=word_model,
+                                                      allNoteEmbeddingsDict=allNoteEmbeddingsDict,
+                                                      sequences=sequences, tokenizer=tokenizer)
 
             return X, y, locDict, vocab_size, word_model, df

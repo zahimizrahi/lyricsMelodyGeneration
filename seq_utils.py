@@ -34,6 +34,12 @@ def countSillabelsPerSong(lyrics):
 
     return songCount
 
+def word2idx(text, tokenizer):
+    # word2idx("the food".split(), tokenizer)
+    encoded = tokenizer.texts_to_sequences(text)[0]
+    encoded = np.array(encoded)
+    return encoded
+
 def get_org_midi_path(midi_path):
   for path in os.listdir('Data/midi_files/'):
     if midi_path in path.lower():
@@ -51,7 +57,7 @@ def get_sillabel_sequences(df):
       midi_path = get_org_midi_path(song_name)
       notes_string = get_note_string(path=midi_path)
       if not notes_string:
-        print(midi_path)
+        print(f'extract note from {midi_path} failed')
         continue
       notesList = notes_string.split(" ")
       endOfList = False
