@@ -16,6 +16,7 @@ from consts import *
 import pandas as pd
 from nltk import word_tokenize
 from collections import Counter
+from embeddings import load_pretrained_embedding
 
 class DataProcessor:
 
@@ -134,8 +135,9 @@ class DataProcessor:
         catch['df'] = df
         return X, y, catch
 
-    def init_tokenizer(self, X = None):
-        text = ' '.join(self.load_vocab(X=X))
+    def init_tokenizer(self, text = None, text_not_flatten = True):
+        if text_not_flatten:
+            text = ' '.join(self.load_vocab(X=text))
         tokenizer = Tokenizer(filters='', oov_token='oov_token')
         tokenizer.fit_on_texts([text])
         return tokenizer
@@ -147,8 +149,7 @@ class DataProcessor:
 
     def fit_transfer_tokenizer(self, tokenizer, X, y):
         if tokenizer is None:
-            tokenizer = self.init_tokenizer(X=X)
-
+            tokenizer = self.init_tokenizer(text=X)
         X = [lst[0] for lst in tokenizer.texts_to_sequences(X)]
         y = [lst[0] for lst in tokenizer.texts_to_sequences(y)]
         return tokenizer, X, y
@@ -188,18 +189,21 @@ class DataProcessor:
             return X, y, songs, catch
 
         else: # if method=='Seq2Seq
+            print('\nprepare data\n')
             df, ignored_words = self.prepare_data(min_ignore_word_frequency=min_ignore_word_frequency,
                                                   max_sentence=max_sentence, type=type, ignored_words=ignored_words)
+            print('\nget_sillabel_sequences\n')
             sequences, wordSequencesDict, noteSequencesDict = get_sillabel_sequences(df)
             df = df[df['MelodyPath'].isin(wordSequencesDict.keys())]
             df = df.reset_index(drop=True)
 
-            word_model = word2vec(sequences=sequences)
+            word_model = load_pretrained_embedding()
             all_songs_words = ' '.join(list(set(np.array(sequences).flatten())))
-            tokenizer = self.init_tokenizer(all_songs_words)
+            tokenizer = self.init_tokenizer(text = all_songs_words, text_not_flatten = False)
             vocab_size = len(tokenizer.word_index) + 1
             allNoteEmbeddingsDict = ExtractGloveEmbeddingDict()
 
+            print('\nprepare train sets\n')
             X, y, locDict = concatinatingNotesAndWord(wordSequencesDict=wordSequencesDict,
                                                                   noteSequencesDict=noteSequencesDict,
                                                                   word_model=word_model,

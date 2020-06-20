@@ -1,6 +1,5 @@
 import warnings
 warnings.filterwarnings("ignore")
-from data_processor import DataProcessor
 import gensim
 import pickle
 import os
@@ -11,9 +10,9 @@ from consts import *
 EMBEDDING_DIM = 300
 GLOVE_DIR = 'glove_pretrained/'
 
-def extract_embedding_weights(tokenizer = None):
+def extract_embedding_weights(tokenizer):
     if tokenizer is None:
-      X, y, tokenizer = DataProcessor().load_tokenized_data()
+      raise ValueError('Please provide a pre-training tokenizer')
     # prepare embedding matrix
     word_index = tokenizer.word_index
     num_words = len(word_index) + 1

@@ -1,6 +1,7 @@
 import nltk
 from consts import *
 from midi_utils import *
+from collections import defaultdict
 
 def countSillabelsPerWord(word):
     count = 0
@@ -33,45 +34,45 @@ def countSillabelsPerSong(lyrics):
 
     return songCount
 
-def getSillabelSequences(trainDF, ignored_words,  midiUrlDict, SEQUENCE_LEN = SEQUENCE_LEN , STEP = STEP ):
-    sequences = []
-    noteSequencesDict = defaultdict(list)
-    wordSequencesDict = defaultdict(list)
-    removeList = [',', '', '.', '(', '!', '?', ')', ']', '[', ':']
-    for index, row in trainDF.iterrows():
-        songName = row['song_name']
-        author = row['author']
-        tokens = nltk.word_tokenize(row['lyrics'])
-        tokens = [w for w in tokens if w not in removeList]
-        tokens = [w.lower() for w in tokens]
-        midiUrl = midiUrlDict[author][songName]
-        if not midiUrl:
-            continue
-        notes_string = get_note_string(path=midiUrl)
-        if not notes_string:
-            continue
-        notesList = notes_string.split(" ")
-        endOfList = False
-        for i in range(0, len(tokens) - SEQUENCE_LEN, STEP):
-            # Only add the sequences where no word is in ignored_words
-            if len(set(tokens[i: i + SEQUENCE_LEN + 1]).intersection(ignored_words)) == 0:
-                words = tokens[i: i + SEQUENCE_LEN]
-                songCount = countSillabelsPerSong(lyrics=words)
-                subNotes = []
-                for i in range(songCount):
-                    if endOfList:
-                        break
-                    try:
-                        note = notesList.pop(-1)
-                        subNotes.append(note)
-                    except:
-                        endOfList = True
+def get_org_midi_path(midi_path):
+  for path in os.listdir('Data/midi_files/'):
+    if midi_path in path.lower():
+      return 'Data/midi_files/'+ path
+  return None
 
-                sequences.append(words)
-                wordSequencesDict[songName].append(words)
-                noteSequencesDict[songName].append(subNotes)
-    assert len(wordSequencesDict) == len(noteSequencesDict)
-    return sequences, wordSequencesDict, noteSequencesDict
+def get_sillabel_sequences(df):
+  sequences = []
+  noteSequencesDict = defaultdict(list)
+  wordSequencesDict = defaultdict(list)
+
+  for index, row in df.iterrows():
+      tokens = row['X']
+      song_name = row['MelodyPath']
+      midi_path = get_org_midi_path(song_name)
+      notes_string = get_note_string(path=midi_path)
+      if not notes_string:
+        print(midi_path)
+        continue
+      notesList = notes_string.split(" ")
+      endOfList = False
+
+      for i in range(0, len(tokens) - SEQUENCE_LEN, STEP):
+          words = tokens[i: i + SEQUENCE_LEN]
+          songCount = countSillabelsPerSong(lyrics=words)
+          subNotes = []
+          for i in range(songCount):
+              if endOfList:
+                  break
+              try:
+                  note = notesList.pop(-1)
+                  subNotes.append(note)
+              except:
+                  endOfList = True
+
+          sequences.append(words)
+          wordSequencesDict[song_name].append(words)
+          noteSequencesDict[song_name].append(subNotes)
+  return sequences, wordSequencesDict, noteSequencesDict
 
 def concatinatingNotesAndWord(wordSequencesDict, noteSequencesDict, word_model, allNoteEmbeddingsDict, sequences, tokenizer):
     train_x = np.zeros([len(sequences), 10, 600])
@@ -87,7 +88,7 @@ def concatinatingNotesAndWord(wordSequencesDict, noteSequencesDict, word_model, 
             embeddedSequenceMidi = getNotesEmbedded(embeddings_dict=allNoteEmbeddingsDict, notesList=subNotes,dim_size=300)
             if len(embeddedSequenceMidi) != 300:
                 continue
-            for t, word in enumerate(sequence):
+            for t, word in enumerate(sequence[:-1]):
                 try:
                     wordEmmbedding = word_model[word]
                 except:
