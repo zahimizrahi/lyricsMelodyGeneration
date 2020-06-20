@@ -5,8 +5,8 @@ from keras import callbacks as cb
 from keras import utils as np_utils
 from keras.layers import CuDNNLSTM
 from keras.optimizers import SGD
-
-from __future__ import print_function
+import datetime
+# from __future__ import print_function
 from keras.callbacks import LambdaCallback, ModelCheckpoint, EarlyStopping
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, LSTM, Bidirectional, Flatten
