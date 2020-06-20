@@ -166,7 +166,7 @@ class DataProcessor:
                                          min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence,
                                          ignored_words=ignored_words)
 
-            catch['tokenizer'], X, y = fit_transfer_tokenizer(self, tokenizer, X, y)
+            catch['tokenizer'], X, y = self.fit_transfer_tokenizer(tokenizer, X, y)
             if max_samples != -1:
                 X = X[:max_samples]
                 y = y[:max_samples]
@@ -177,7 +177,7 @@ class DataProcessor:
             X, y, songs, catch = self.load_data(is_melody_model=is_melody_model, melody_type=melody_type,  pre_embedding_melody=pre_embedding_melody,type=type,
                                          min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence, ignored_words = ignored_words)
 
-            tokenizer, X, y = fit_transfer_tokenizer(self, tokenizer, X, y)
+            tokenizer, X, y = self.fit_transfer_tokenizer(tokenizer, X, y)
             catch['tokenizer'] = tokenizer
             y = to_categorical(y, num_classes=len(tokenizer.word_index) + 1)
 
@@ -196,7 +196,7 @@ class DataProcessor:
 
             word_model = word2vec(sequences=sequences)
             all_songs_words = ' '.join(list(set(np.array(sequences).flatten())))
-            tokenizer = init_tokenizer(all_songs_words)
+            tokenizer = self.init_tokenizer(all_songs_words)
             vocab_size = len(tokenizer.word_index) + 1
             allNoteEmbeddingsDict = ExtractGloveEmbeddingDict()
 

@@ -8,6 +8,8 @@ LYRICS_TEST = "lyrics_test_set.csv"
 DIR_MELODY = 'Data/midi_files'
 LYRICS_DIR = 'Data/'
 TEXT_DATA = os.path.join(LYRICS_DIR, 'unified_lyrics_dump.txt')
+SEQUENCE_LEN  = 2
+STEP = 1
 
 MAX_SEQUENCE_LENGTH = 1  # During each step of the training phase, your architecture will receive as input one word of the lyrics.
 VALIDATION_SPLIT = 0.2
