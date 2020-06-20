@@ -19,6 +19,7 @@ from keras.utils.data_utils import get_file
 class seqModel:
     def __init__(self, tokenizer= None, embedding_matrix = None,
                  rnn_units=50,
+                 vocab_size = None,
                  melody_vec_dim = 150,
                  bidirectional=True,
                  rnn_type='lstm',
@@ -32,6 +33,7 @@ class seqModel:
                  patience=3,
                  train_embedding=True,
                  is_layer_norm=True):
+        self.vocab_size = vocab_size
         self.rnn_type = rnn_type.lower()
         self.batch_size = batch_size
         self.epochs = epochs
@@ -59,7 +61,7 @@ class seqModel:
 
         self.model = model
 
-    def trainModel(self,train_x, train_y, vocab_size):
+    def train(self,train_x, train_y, vocab_size):
         return self.model.fit(train_x, train_y,batch_size=self.batch_size,epochs=self.epochs, callbacks=self.callbacks ) # [TensorBoardColabCallback(tbc)])
 
 # TODO: PRDEICT!
