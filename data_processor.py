@@ -10,6 +10,7 @@ from keras.preprocessing.text import Tokenizer
 from keras.utils import to_categorical
 from tqdm import tqdm
 from midi_utils import *
+from seq_utils import *
 import joblib
 from consts import *
 import pandas as pd
@@ -124,7 +125,6 @@ class DataProcessor:
             df["EmbeddingMelody_multi"] = df.apply(lambda row: np.array([row["EmbeddingMelody"]] * len(row.X)),axis=1)
             songs = np.vstack(df["EmbeddingMelody_multi"])
             # End melody embedding handaling
-
             text_x = np.concatenate(df.X)
             text_y = np.concatenate(df.y)
             X = np.hstack(text_x)
@@ -134,7 +134,8 @@ class DataProcessor:
         catch['df'] = df
         return X, y, catch
 
-    def init_tokenizer(self, text):
+    def init_tokenizer(self, X = None):
+        text = ' '.join(self.load_vocab(X=X))
         tokenizer = Tokenizer(filters='', oov_token='oov_token')
         tokenizer.fit_on_texts([text])
         return tokenizer
@@ -144,7 +145,15 @@ class DataProcessor:
           X, _,_= self.load_data(is_melody_model=False, min_ignore_word_frequency = -1, max_sentence = -1)
         return list(set(X.flatten()))
 
-    def load_tokenized_data(self, is_melody_model=True, melody_type='doc2vec',max_samples=-1,type='train',
+    def fit_transfer_tokenizer(self, tokenizer, X, y):
+        if tokenizer is None:
+            tokenizer = self.init_tokenizer(X=X)
+
+        X = [lst[0] for lst in tokenizer.texts_to_sequences(X)]
+        y = [lst[0] for lst in tokenizer.texts_to_sequences(y)]
+        return tokenizer, X, y
+
+    def load_tokenized_data(self, is_melody_model=True, melody_type='doc2vec', method = 'All', max_samples=-1,type='train',
                             pre_embedding_melody=None, min_ignore_word_frequency=2, max_sentence=300, ignored_words = None, tokenizer = None):
         if type == 'test':
             if tokenizer is None:
@@ -152,30 +161,49 @@ class DataProcessor:
             if ignored_words is None:
                 raise ValueError('Please provide a ignored_words')
 
-        if is_melody_model:
+        if not is_melody_model:
+            X, y, catch = self.load_data(type=type, is_melody_model=is_melody_model, melody_type=melody_type,
+                                         min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence,
+                                         ignored_words=ignored_words)
+
+            catch['tokenizer'], X, y = fit_transfer_tokenizer(self, tokenizer, X, y)
+            if max_samples != -1:
+                X = X[:max_samples]
+                y = y[:max_samples]
+            return np.array(X), np.array(y), catch
+
+        #else - is_melody_model
+        if method == 'All':
             X, y, songs, catch = self.load_data(is_melody_model=is_melody_model, melody_type=melody_type,  pre_embedding_melody=pre_embedding_melody,type=type,
-                                     min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence, ignored_words = ignored_words)
-        else:
-            X, y, catch = self.load_data(type=type, is_melody_model=is_melody_model, melody_type=melody_type , min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence, ignored_words = ignored_words)
+                                         min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence, ignored_words = ignored_words)
 
-        if tokenizer is None:
-            all_songs_words = ' '.join(self.load_vocab(X=X))
-            tokenizer = self.init_tokenizer(all_songs_words)
-
-        catch['tokenizer'] = tokenizer
-        X = [lst[0] for lst in tokenizer.texts_to_sequences(X)]
-        y = [lst[0] for lst in tokenizer.texts_to_sequences(y)]
-
-        if is_melody_model:
+            tokenizer, X, y = fit_transfer_tokenizer(self, tokenizer, X, y)
+            catch['tokenizer'] = tokenizer
             y = to_categorical(y, num_classes=len(tokenizer.word_index) + 1)
 
-        if max_samples != -1:
-            X = X[:max_samples]
-            y = y[:max_samples]
-
-        if is_melody_model:
             if max_samples != -1:
+                X = X[:max_samples]
+                y = y[:max_samples]
                 songs = songs[:max_samples, :]
             return X, y, songs, catch
-        else:
-            return np.array(X), np.array(y), catch
+
+        else: # if method=='Seq2Seq
+            df, ignored_words = self.prepare_data(min_ignore_word_frequency=min_ignore_word_frequency,
+                                                  max_sentence=max_sentence, type=type, ignored_words=ignored_words)
+            sequences, wordSequencesDict, noteSequencesDict = get_sillabel_sequences(df)
+            df = df[df['MelodyPath'].isin(wordSequencesDict.keys())]
+            df = df.reset_index(drop=True)
+
+            word_model = word2vec(sequences=sequences)
+            all_songs_words = ' '.join(list(set(np.array(sequences).flatten())))
+            tokenizer = init_tokenizer(all_songs_words)
+            vocab_size = len(tokenizer.word_index) + 1
+            allNoteEmbeddingsDict = ExtractGloveEmbeddingDict()
+
+            X, y, locDict = concatinatingNotesAndWord(wordSequencesDict=wordSequencesDict,
+                                                                  noteSequencesDict=noteSequencesDict,
+                                                                  word_model=word_model,
+                                                                  allNoteEmbeddingsDict=allNoteEmbeddingsDict,
+                                                                  sequences=sequences)
+
+            return X, y, locDict, vocab_size, word_model, df

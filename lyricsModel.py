@@ -121,6 +121,8 @@ class LyricsModel:
         prediction = self.model.predict(x=word_idxs)
         return prediction
 
+
+    # TODO: sample choice
     def sample(self, preds, temperature=1.0):
         if temperature <= 0:
             return np.argmax(preds)

@@ -1,7 +1,6 @@
 import datetime
 import math
 import warnings
-
 warnings.filterwarnings("ignore")
 import keras.layers as KL
 from keras.initializers import Constant
@@ -18,8 +17,6 @@ from keras.preprocessing.sequence import pad_sequences
 from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
 EMBEDDING_DIM = 300
 INPUT_LENGTH = 1
-MELODY_VEC_LENGTH = 150
-MELODY_CNN_VEC_LENGTH = 128
 
 def word2idx(text, tokenizer):
     # word2idx("the food".split(), tokenizer)
@@ -134,8 +131,7 @@ class LyricsMelodyModel:
 
             # get 2 arrays of probs and word_tokens
             words_probs_enu = list(enumerate(words_probs))
-            words_probs_sorted = sorted(words_probs_enu, key=lambda x: x[1],
-                                        reverse=True)  # sorting in descending order
+            words_probs_sorted = sorted(words_probs_enu, key=lambda x: x[1], reverse=True)  # sorting in descending order
             words_tokens, words_probs = list(zip(*words_probs_sorted))
             # normalizre to sum 1
             words_probs = np.array(words_probs, dtype=np.float64)
@@ -147,7 +143,3 @@ class LyricsMelodyModel:
             # append to input
             in_text, result = out_word, result + ' ' + out_word
         return result
-
-
-
-
