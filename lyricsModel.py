@@ -78,7 +78,6 @@ class LyricsModel:
             model.add(Bidirectional(self.rnn_type(rnn_units)))
         else:
             model.add(LSTM(units=self.EMBEDDING_DIM))
-            # model.add(rnn_type(rnn_units))
 
         model.add(Flatten())
         model.add(Dense(units=self.vocabulary_size, kernel_regularizer=regularizers.l2(kernel_regularizer), activation='softmax'))
@@ -90,7 +89,7 @@ class LyricsModel:
         run_name = f'{prefix}_{run_time}_b{batch_size}_lr{lr}'
 
         self.callbacks = [
-            EarlyStopping(monitor='val_accuracy', patience=patience, verbose=verbose),
+            EarlyStopping(patience=patience, verbose=verbose),
             ModelCheckpoint(f'{run_name}.h5', verbose=0, save_best_only=True, save_weights_only=True)]
 
         if tf.__version__[0] == '2':
@@ -117,26 +116,28 @@ class LyricsModel:
     def get_model(self):
         return self.model
 
-    def predict_next_word(self, word_idxs, le_train=None):
-        prediction = self.model.predict(x=word_idxs)
-        return prediction
+    def predict(self, first_word, n_words):
+        in_text, result = first_word, first_word
+        # generate a fixed number of words
+        for _ in range(n_words):
+            # encode the text as integer
+            encoded = self.tokenizer.texts_to_sequences([in_text])[0]
+            encoded = np.array(encoded)
 
+            words_probs = self.model.predict_proba(encoded, verbose=0)[0]
 
-    # TODO: sample choice
-    def sample(self, preds, temperature=1.0):
-        if temperature <= 0:
-            return np.argmax(preds)
-        preds = np.asarray(preds).astype('float64')
-        preds = np.log(preds) / temperature
-        exp_preds = np.exp(preds)
-        preds = exp_preds / np.sum(exp_preds)
-        probas = np.random.multinomial(1, preds, 1)
-        return np.argmax(probas)
+            # get 2 arrays of probs and word_tokens
+            words_probs_enu = list(enumerate(words_probs))
+            words_probs_sorted = sorted(words_probs_enu, key=lambda x: x[1],
+                                        reverse=True)  # sorting in descending order
+            words_tokens, words_probs = list(zip(*words_probs_sorted))
+            # normalizre to sum 1
+            words_probs = np.array(words_probs, dtype=np.float64)
+            words_probs /= words_probs.sum().astype(np.float64)
+            word_token = np.random.choice(words_tokens, p=words_probs)
 
-    def generate(self, word_idxs, num_words=10):
-        # print_callback = LambdaCallback(on_epoch_end=on_epoch_end)
-        for i in range(num_words):
-            prediction = self.predict_next_word(np.array(word_idxs))
-            idx = self.sample(prediction[-1], temperature=0.7)
-            word_idxs.append(idx)
-        return ' '.join(idx2word(word_idxs,self.tokenizer))
+            # map predicted word index to word
+            out_word = idx2word(word_token, self.tokenizer)
+            # append to input
+            in_text, result = out_word, result + ' ' + out_word
+        return result
