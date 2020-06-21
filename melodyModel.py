@@ -104,9 +104,8 @@ class LyricsMelodyModel:
         self.callbacks = [
             EarlyStopping(patience=self.patience, verbose=self.verbose),
             ModelCheckpoint(f'{run_name}.h5', verbose=0, save_best_only=True, save_weights_only=True)]
-        if tf.__version__[0] == '2':
-            log_dir = f'logs/fit/{run_name}'
-            self.callbacks.append(TensorBoard(log_dir=log_dir))
+        log_dir = f'logs/fit/{run_name}'
+        self.callbacks.append(TensorBoard(log_dir=log_dir))
         self.model = model
         self.tokenizer = tokenizer
 
