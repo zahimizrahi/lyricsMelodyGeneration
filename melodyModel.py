@@ -38,6 +38,7 @@ class LyricsMelodyModel:
                  dropout=0.3,
                  batch_size=32,
                  epochs=10,
+                 kernel_regularizer=0.01,
                  optimizer=None,
                  show_summary=True,
                  shuffle=True,
@@ -47,7 +48,7 @@ class LyricsMelodyModel:
                  is_layer_norm=True):
 
         self.rnn_type = rnn_type.lower()
-
+        self.kernel_regularizer = kernel_regularizer
         self.batch_size = batch_size
         self.epochs = epochs
         self.optimizer = optimizer
@@ -91,7 +92,7 @@ class LyricsMelodyModel:
               combined = KL.GRU(rnn_units)(combined)
         if is_layer_norm:
             combined = LayerNormalization()(combined)
-        combined = KL.Dense(num_words, kernel_regularizer=regularizers.l2(0.1), activation='softmax')(combined)
+        combined = KL.Dense(num_words, kernel_regularizer=regularizers.l2(self.kernel_regularizer), activation='softmax')(combined)
         model = Model(inputs=[lyrics_input, melody_input], outputs=[combined])
 
         if show_summary:
@@ -103,7 +104,9 @@ class LyricsMelodyModel:
         self.callbacks = [
             EarlyStopping(patience=self.patience, verbose=self.verbose),
             ModelCheckpoint(f'{run_name}.h5', verbose=0, save_best_only=True, save_weights_only=True)]
-
+        if tf.__version__[0] == '2':
+            log_dir = f'logs/fit/{run_name}'
+            self.callbacks.append(TensorBoard(log_dir=log_dir))
         self.model = model
         self.tokenizer = tokenizer
 
