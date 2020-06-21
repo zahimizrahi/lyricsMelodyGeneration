@@ -6,11 +6,9 @@ from keras import utils as np_utils
 from keras.layers import CuDNNLSTM
 from keras.optimizers import SGD
 import datetime
-# from __future__ import print_function
-from keras.callbacks import LambdaCallback, ModelCheckpoint, EarlyStopping
+from keras.callbacks import LambdaCallback, ModelCheckpoint, EarlyStopping, TensorBoard
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, LSTM, Bidirectional, Flatten
-
 
 from keras.layers.recurrent import LSTM
 from keras.layers.embeddings import Embedding
@@ -24,19 +22,20 @@ class seqModel:
                  bidirectional=True,
                  rnn_type='lstm',
                  dropout=0.3,
+                 validation_split = 0.1,
                  batch_size=32,
                  epochs=10,
                  optimizer=None,
                  show_summary=True,
                  shuffle=True,
-                 verbose=False,
-                 patience=3,
-                 train_embedding=True,
-                 is_layer_norm=True):
+                 verbose=True,
+                 patience=3):
+
         self.vocab_size = vocab_size
         self.rnn_type = rnn_type.lower()
         self.batch_size = batch_size
         self.epochs = epochs
+        self.validation_split = validation_split
         self.optimizer = optimizer
         if optimizer is None:
             self.optimizer = 'adam'
@@ -58,11 +57,15 @@ class seqModel:
         self.callbacks = [
             EarlyStopping(patience=self.patience, verbose=self.verbose),
             ModelCheckpoint(f'{run_name}.h5', verbose=0, save_best_only=True, save_weights_only=True)]
-
+        log_dir = f'logs/fit/{run_name}'
+        self.callbacks.append(TensorBoard(log_dir=log_dir))
         self.model = model
 
+    def get_model(self):
+        return self.model
+
     def train(self,train_x, train_y, vocab_size):
-        return self.model.fit(train_x, train_y,batch_size=self.batch_size,epochs=self.epochs, callbacks=self.callbacks ) # [TensorBoardColabCallback(tbc)])
+        return self.model.fit(train_x, train_y,batch_size=self.batch_size,epochs=self.epochs, callbacks=self.callbacks,  validation_split=self.validation_split )
 
 # TODO: PRDEICT!
 # # predict:
