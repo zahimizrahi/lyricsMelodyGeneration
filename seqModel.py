@@ -104,7 +104,7 @@ class seqModel:
             model_input_new = np.concatenate([wordEmbedding, seqMelodyEmbbeding]).reshape(1, self.input_length, 600)
             model_input = np.append(model_input_new, model_input, axis=0)
 
-            words_probs = my_model.predict(model_input)[0]
+            words_probs = self.model.predict(model_input)[0]
             words_probs_enu = list(enumerate(words_probs))
             words_probs_sorted = sorted(words_probs_enu, key=lambda x: x[1], reverse=True)  # sorting in descending order
 

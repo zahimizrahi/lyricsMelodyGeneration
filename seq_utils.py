@@ -94,14 +94,15 @@ def concatinatingNotesAndWord(wordSequencesDict, noteSequencesDict, word_model, 
             embeddedSequenceMidi = getNotesEmbedded(embeddings_dict=allNoteEmbeddingsDict, notesList=subNotes,dim_size=300)
             if len(embeddedSequenceMidi) != 300:
                 continue
-            for t, word in enumerate(sequence[:-1]):
+            sequence_list = sequence.split()
+            for t, word in enumerate(sequence_list[:-1]):
                 try:
                     wordEmmbedding = word_model[word]
                 except:
                     wordEmmbedding = word_model["unk_embedding"]
                 train_x[i, t] = np.concatenate([wordEmmbedding, embeddedSequenceMidi])
             try:
-                train_y[i] = word2idx(sequence[-1], tokenizer)
+                train_y[i] = word2idx([sequence_list[-1]], tokenizer)
             except:
                 train_y[i] = 0
             i += 1
