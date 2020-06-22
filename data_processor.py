@@ -147,7 +147,7 @@ class DataProcessor:
           X, _,_= self.load_data(is_melody_model=False, min_ignore_word_frequency = -1, max_sentence = -1)
         return list(set(X.flatten()))
 
-    def fit_transfer_tokenizer(self, tokenizer, X, y):
+    def fit_transfer_tokenizer(self, X, y, tokenizer=None ):
         if tokenizer is None:
             tokenizer = self.init_tokenizer(text=X)
         X = [lst[0] for lst in tokenizer.texts_to_sequences(X)]
@@ -180,9 +180,8 @@ class DataProcessor:
             X, y, songs, catch = self.load_data(is_melody_model=is_melody_model, melody_type=melody_type,  pre_embedding_melody=pre_embedding_melody,type=type,
                                          min_ignore_word_frequency=min_ignore_word_frequency, max_sentence=max_sentence, ignored_words = ignored_words)
 
-            if type == 'train':
-                tokenizer, X, y = self.fit_transfer_tokenizer(tokenizer, X, y)
-                catch['tokenizer'] = tokenizer
+            tokenizer, X, y = self.fit_transfer_tokenizer(X, y, tokenizer)
+            catch['tokenizer'] = tokenizer
             y = to_categorical(y, num_classes=len(tokenizer.word_index) + 1)
 
             if max_samples != -1:
@@ -215,4 +214,10 @@ class DataProcessor:
                                                       allNoteEmbeddingsDict=allNoteEmbeddingsDict,
                                                       sequences=sequences, tokenizer=tokenizer)
 
-            return X, y, locDict, vocab_size, word_model, df
+            catch = {}
+            catch['tokenizer'] = tokenizer
+            catch['df'] = df
+            catch['word_model'] = word_model
+            catch['vocab_size'] = vocab_size
+            catch['locDict'] = locDict
+            return X, y, catch

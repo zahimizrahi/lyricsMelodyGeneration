@@ -9,23 +9,25 @@ import datetime
 from keras.callbacks import LambdaCallback, ModelCheckpoint, EarlyStopping, TensorBoard
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, LSTM, Bidirectional, Flatten
+from keras import regularizers
 
-from keras.layers.recurrent import LSTM
+from keras.layers.recurrent import LSTM, GRU
 from keras.layers.embeddings import Embedding
 from keras.utils.data_utils import get_file
 
 class seqModel:
-    def __init__(self, tokenizer= None, embedding_matrix = None,
+    def __init__(self,
                  rnn_units=50,
+                 input_length = 1,
                  vocab_size = None,
-                 melody_vec_dim = 150,
-                 bidirectional=True,
                  rnn_type='lstm',
+                 bidirectional=True,
                  dropout=0.3,
+                 kernal=0.1,
                  validation_split = 0.1,
                  batch_size=32,
                  epochs=10,
-                 optimizer=None,
+                 optimizer='adam',
                  show_summary=True,
                  shuffle=True,
                  verbose=True,
@@ -43,10 +45,20 @@ class seqModel:
         self.verbose = verbose
         self.patience = patience
         model = Sequential()
-        model.add(LSTM(50, input_shape=(10, 600)))
-        model.add(Dense(units=vocab_size))
-        model.add(Activation('softmax'))
-        model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+        if self.rnn_type == 'lstm':
+          model.add(LSTM(rnn_units, input_shape=(input_length, 600)))
+        elif self.rnn_type == 'gru':
+          model.add(GRU(rnn_units, input_shape=(input_length, 600)))
+        else:
+          raise ValueError('Please provide a valid rnn type (GRU / LSTM)')
+
+        if dropout > 0:
+            model.add(Dropout(dropout))
+        if is_layer_norm:
+            model.add(LayerNormalization())
+        model.add(Dense(units=vocab_size, kernel_regularizer=regularizers.l2(kernal), activation='softmax'))
+        model.compile(optimizer=self.optimizer, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
         if show_summary:
             model.summary()
@@ -64,8 +76,9 @@ class seqModel:
     def get_model(self):
         return self.model
 
-    def train(self,train_x, train_y, vocab_size):
-        return self.model.fit(train_x, train_y,batch_size=self.batch_size,epochs=self.epochs, callbacks=self.callbacks,  validation_split=self.validation_split )
+    def train(self,train_x, train_y):
+        return self.model.fit(train_x, train_y,batch_size=self.batch_size,epochs=self.epochs,
+                              callbacks=self.callbacks,  validation_split=self.validation_split )
 
 # TODO: PRDEICT!
 # # predict:

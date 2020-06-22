@@ -9,7 +9,6 @@ import pickle
 import cv2
 import joblib
 import pathlib
-NOTE_EMBEDDING_PATH = './vectors_d300.txt'
 
 def get_embedding_melody(melody_type='doc2vec'):
     pickle_name = 'dict_embedding_melody.pickle' if melody_type=='doc2vec' else 'songs_embedding_glove_dict.pickle'

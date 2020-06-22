@@ -81,7 +81,7 @@ def get_sillabel_sequences(df):
   return sequences, wordSequencesDict, noteSequencesDict
 
 def concatinatingNotesAndWord(wordSequencesDict, noteSequencesDict, word_model, allNoteEmbeddingsDict, sequences, tokenizer):
-    train_x = np.zeros([len(sequences), 10, 600])
+    train_x = np.zeros([len(sequences), SEQUENCE_LEN-1, 600])
     train_y = np.zeros([len(sequences)])
     locDict = defaultdict(list)
     i = 0
