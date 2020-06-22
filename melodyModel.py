@@ -30,7 +30,9 @@ def idx2word(index, tokenizer):
             return word
 
 class LyricsMelodyModel:
-    def __init__(self, tokenizer, embedding_matrix,
+    def __init__(self,
+                 tokenizer,
+                 embedding_matrix,
                  rnn_units=50,
                  melody_vec_dim = 150,
                  bidirectional=True,

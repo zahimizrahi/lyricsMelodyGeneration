@@ -204,10 +204,9 @@ class DataProcessor:
                 all_songs_words = ' '.join(list(set(np.array(sequences).flatten())))
                 tokenizer = self.init_tokenizer(text = all_songs_words, text_not_flatten = False)
 
-            vocab_size = len(tokenizer.word_index) + 1
             allNoteEmbeddingsDict = ExtractGloveEmbeddingDict()
 
-            print('\nprepare train sets\n')
+            print('\nprepare data sets\n')
             X, y, locDict = concatinatingNotesAndWord(wordSequencesDict=wordSequencesDict,
                                                       noteSequencesDict=noteSequencesDict,
                                                       word_model=word_model,
@@ -218,6 +217,6 @@ class DataProcessor:
             catch['tokenizer'] = tokenizer
             catch['df'] = df
             catch['word_model'] = word_model
-            catch['vocab_size'] = vocab_size
             catch['locDict'] = locDict
+            catch['ignored_words'] = ignored_words
             return X, y, catch
