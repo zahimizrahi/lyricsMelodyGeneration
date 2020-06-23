@@ -1,7 +1,9 @@
 import numpy as np
 import scipy
-from const import *
+from consts import *
 from embeddings import *
+from nltk import word_tokenize
+from collections import Counter
 
 def clean_data(lyrics_set):
     clean_lyrics = lyrics_set.str.replace(r"''", '"').replace(r'`', "'").replace("/", "-").replace('\?\?\?', '?')

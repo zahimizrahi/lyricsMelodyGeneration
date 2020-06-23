@@ -13,7 +13,6 @@ from midi_utils import *
 from seq_utils import *
 import joblib
 import pandas as pd
-from nltk import word_tokenize
 from collections import Counter
 from embeddings import load_pretrained_embedding
 from utils import *
@@ -131,7 +130,7 @@ class DataProcessor:
             if type == 'test':
                 return np.array(X), np.array(y), catch
 
-            catch['tokenizer'], X, y = self.fit_transfer_tokenizer(tokenizer, X, y)
+            catch['tokenizer'], X, y = self.fit_transfer_tokenizer(X, y, tokenizer)
             if max_samples != -1:
                 X = X[:max_samples]
                 y = y[:max_samples]
