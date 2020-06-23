@@ -15,19 +15,10 @@ from keras import regularizers
 from keras.models import Model
 from keras.preprocessing.sequence import pad_sequences
 from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
+from utils import *
+
 EMBEDDING_DIM = 300
 INPUT_LENGTH = 1
-
-def word2idx(text, tokenizer):
-    # word2idx("the food".split(), tokenizer)
-    encoded = tokenizer.texts_to_sequences(text)[0]
-    encoded = np.array(encoded)
-    return encoded
-
-def idx2word(index, tokenizer):
-    for word, idx in tokenizer.word_index.items():
-        if idx == index:
-            return word
 
 class LyricsMelodyModel:
     def __init__(self,

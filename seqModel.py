@@ -12,11 +12,7 @@ from keras import regularizers
 from keras.layers.recurrent import LSTM, GRU
 from keras.layers.embeddings import Embedding
 from keras.utils.data_utils import get_file
-
-def idx2word(index, tokenizer):
-    for word, idx in tokenizer.word_index.items():
-        if idx == index:
-            return word
+from utils import *
 
 class seqModel:
     def __init__(self,

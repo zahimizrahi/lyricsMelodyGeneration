@@ -17,22 +17,12 @@ from tensorflow.keras.models import Model, Sequential
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
 from sklearn.model_selection import train_test_split
+from utils import *
+
 EMBEDDING_DIM = 300
 INPUT_LENGTH = 1
 MELODY_VEC_LENGTH = 150
 MELODY_CNN_VEC_LENGTH = 128
-
-def word2idx(text, tokenizer):
-    # word2idx("the food".split(), tokenizer)
-    encoded = tokenizer.texts_to_sequences(text)[0]
-    encoded = np.array(encoded)
-    return encoded
-
-def idx2word(index, tokenizer):
-    for word, idx in tokenizer.word_index.items():
-        if idx == index:
-            return word
-
 class LyricsModel:
     def __init__(self,
                  tokenizer,

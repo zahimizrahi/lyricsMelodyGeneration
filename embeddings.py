@@ -7,9 +7,6 @@ import numpy as np
 import gc
 from consts import *
 
-EMBEDDING_DIM = 300
-GLOVE_DIR = 'glove_pretrained/'
-
 def extract_embedding_weights(tokenizer):
     if tokenizer is None:
       raise ValueError('Please provide a pre-training tokenizer')

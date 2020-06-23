@@ -12,73 +12,31 @@ from tqdm import tqdm
 from midi_utils import *
 from seq_utils import *
 import joblib
-from consts import *
 import pandas as pd
 from nltk import word_tokenize
 from collections import Counter
 from embeddings import load_pretrained_embedding
+from utils import *
+from consts import *
+
 
 class DataProcessor:
-
-    def get_midi_path(self, artist, song_name):
-        return '{}_-_{}.mid'.format(artist.strip().replace(' ', '_'), song_name.strip().replace(' ', '_'))
-
-    def clean_data(self, lyrics_set):
-        clean_lyrics = lyrics_set.str.replace(r"''", '"').replace(r'`', "'").replace("/", "-").replace('\?\?\?', '?')
-        # Replace all brackets, and weird chars and :;#"
-        reg = r'[:;#\*"ã¤¼©¦­\]\[\}\{\)(?!]'
-        clean_lyrics = clean_lyrics.str.replace(r'[\[\]()\{\}:;#\*"ã¤¼©¦­!?]', '')
-
-        # replace words with space
-        for w in [" '", '\.\.', '\.\.\.', '\.\.\.\.', '\.\.\.\.\.']:
-            clean_lyrics = clean_lyrics.str.replace(w, ' ')
-
-        clean_lyrics = clean_lyrics.str.replace('&', '.')
-        # remove words
-        for w in ['chorus', '\-\-\-', '\-\-']:
-            clean_lyrics = clean_lyrics.str.replace(w, '')
-
-        clean_lyrics = clean_lyrics.apply(lambda x: ' '.join(x.split()))
-        return clean_lyrics
-
-    def getIgnoreWordList(self, df, MIN_WORD_FREQUENCY=2):
-        text = ' '.join([w for w in df.Text])
-        tokens = word_tokenize(text)
-        text_in_words = tokens
-        word_freq = Counter(text_in_words)
-        ignored_words = set()
-        for k, v in word_freq.items():
-            if word_freq[k] < MIN_WORD_FREQUENCY:
-                ignored_words.add(k)
-        words = set(text_in_words)
-        print('Unique words before ignoring:', len(words))
-        print('Ignoring words with frequency <', MIN_WORD_FREQUENCY)
-        words = sorted(set(words) - ignored_words)
-        print('Unique words after ignoring:', len(words))
-        return ignored_words
-
-    def getIgnoreText(self, line, ignored_words):
-            if ignored_words is None:
-                raise ValueError("turn on Ignore Word")
-            line_array = line.split()
-            line_array = [word for word in line_array if word not in ignored_words]
-            return ' '.join(line_array)
 
     def prepare_data(self, min_ignore_word_frequency=2, max_sentence=300, type='train', ignored_words=None):
         midi_files_list = [filename.lower() for filename in os.listdir(os.path.join(ROOT_PATH, DATA_PATH, MIDI_PATH))]
         train_or_test = LYRICS_TRAIN if type == 'train' else LYRICS_TEST
         lyrics_files_dir = os.path.join(ROOT_PATH, DATA_PATH, train_or_test)
         df = pd.read_csv(lyrics_files_dir, usecols=[0, 1, 2], names=['Artist', 'SongName', 'Text'])
-        df.Text = self.clean_data(df.Text)
+        df.Text = clean_data(df.Text)
 
         if min_ignore_word_frequency > 1:
             if ignored_words is None:
                 if type != 'train':
                     raise ValueError('if type is not train - ignored_words cant to be Empty')
-                ignored_words = self.getIgnoreWordList(df, MIN_WORD_FREQUENCY=min_ignore_word_frequency)
-            df.Text = df.Text.apply(lambda line: self.getIgnoreText(line, ignored_words))
+                ignored_words = getIgnoreWordList(df, MIN_WORD_FREQUENCY=min_ignore_word_frequency)
+            df.Text = df.Text.apply(lambda line: getIgnoreText(line, ignored_words))
 
-        df['MelodyPath'] = df.apply(lambda x: self.get_midi_path(x['Artist'], x['SongName']), axis=1)
+        df['MelodyPath'] = df.apply(lambda x: get_midi_path(x['Artist'], x['SongName']), axis=1)
         # in case there is no melody path for some of the rows in lyrics train
         df['MelodyPath'] = df['MelodyPath'].apply(lambda x: x if x in midi_files_list else None)
         df = df[df['MelodyPath'].notna()]

@@ -11,4 +11,6 @@ SEQUENCE_LEN  = 2  # x is 1 and y is 1 -> During each step of the training phase
 STEP = 1
 DOC2VEC_MODELS_PATHS = 'Data/Models'
 #https://github.com/brangerbriz/midi-glove
+EMBEDDING_DIM = 300
+GLOVE_DIR = 'glove_pretrained/'
 NOTE_EMBEDDING_PATH = './vectors_d300.txt'
