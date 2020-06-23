@@ -2,6 +2,7 @@ import nltk
 from consts import *
 from midi_utils import *
 from collections import defaultdict
+from utils import *
 
 def countSillabelsPerWord(word):
     count = 0
@@ -33,12 +34,6 @@ def countSillabelsPerSong(lyrics):
         songCount += count
 
     return songCount
-
-def word2idx(text, tokenizer):
-    # word2idx("the food".split(), tokenizer)
-    encoded = tokenizer.texts_to_sequences(text)[0]
-    encoded = np.array(encoded)
-    return encoded
 
 def get_org_midi_path(midi_path):
   for path in os.listdir('Data/midi_files/'):
