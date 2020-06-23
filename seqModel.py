@@ -1,19 +1,17 @@
-from keras.models import Sequential
-from keras.layers.recurrent import LSTM
 from keras import callbacks as cb
+from keras_layer_normalization import LayerNormalization
+import numpy as np
 from keras import utils as np_utils
 from keras.layers import CuDNNLSTM
 from keras.optimizers import SGD
 import datetime
-from keras.callbacks import LambdaCallback, ModelCheckpoint, EarlyStopping, TensorBoard
+from keras.callbacks import LambdaCallback, ModelCheckpoint, EarlyStopping,TensorBoard
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation, LSTM, Bidirectional, Flatten
+from keras.layers import Dense, Dropout, Activation, Flatten
 from keras import regularizers
-
 from keras.layers.recurrent import LSTM, GRU
 from keras.layers.embeddings import Embedding
 from keras.utils.data_utils import get_file
-import numpy as np
 
 def idx2word(index, tokenizer):
     for word, idx in tokenizer.word_index.items():
@@ -36,6 +34,7 @@ class seqModel:
                  show_summary=True,
                  shuffle=True,
                  verbose=True,
+                 is_layer_norm = True,
                  patience=3):
         self.tokenizer = tokenizer
         self.vocab_size = vocab_size
