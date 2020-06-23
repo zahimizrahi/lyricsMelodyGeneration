@@ -90,7 +90,7 @@ def calculate_similarity(df, lyrics_generate_dict):
   for key in lyrics_generate_dict:
     num_word = len(lyrics_generate_dict[key].split())
     original_lyrics = ' '.join(list(df[df['SongName'] == key ]['X'])[0][:num_word])
-    cosine_similarity_list.append(cosine_distance_wordembedding_method2(original_lyrics , lyrics_generate_dict[key], word_model= word_model))
+    cosine_similarity_list.append(cosine_distance_wordembedding_method(original_lyrics , lyrics_generate_dict[key], word_model= word_model))
 
   cosinn_score = np.array(cosine_similarity_list).mean()
   print('Word Embedding method with a cosine distance asses that our two sentences are similar to',cosinn_score,'%')
