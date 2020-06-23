@@ -263,7 +263,7 @@ def get_song_vector(midi_path, models, fs=10):
 def getNotesEmbedded(embeddings_dict, notesList, dim_size=300):
     total_vec = np.zeros(dim_size)
     total_num_of_notes = 0
-    notesString = ''.join(notesList)
+    notesString = ' '.join(notesList)
     notes_by_instr = notesString.split('TRACK_START ')
     for all_notes in notes_by_instr:
         if all_notes == '':
@@ -271,7 +271,7 @@ def getNotesEmbedded(embeddings_dict, notesList, dim_size=300):
         notes = all_notes.split(' ')
         instr_vec = np.zeros(dim_size)
         num_of_notes = 0
-        for note in enumerate(notes):
+        for index, note in enumerate(notes):
             num_of_notes += 1
             if note == '':
                 continue

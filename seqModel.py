@@ -86,27 +86,23 @@ class seqModel:
         return self.model.fit(train_x, train_y,batch_size=self.batch_size,epochs=self.epochs,
                               callbacks=self.callbacks,  validation_split=self.validation_split )
 
-    def predict(self, word_model, X_test, first_word, n_word, seqMelodyIndexStart):
+    def predict(self, word_model, first_word, n_word, song_seq):
         model_input = np.zeros([0, self.input_length, 600])
-        new_word = first_word
+        result, new_word = first_word, first_word
 
         for num_word in range(n_word):
-
             try:
                 wordEmbedding = word_model[new_word]
             except:
                 wordEmbedding = word_model["unk_embedding"]
-
-            seqMelodyIndex = seqMelodyIndexStart + num_word
-            seqMelodyEmbbeding = X_test[seqMelodyIndex][0][300:]
+            seqMelodyEmbbeding = song_seq[num_word]
 
             model_input_new = np.concatenate([wordEmbedding, seqMelodyEmbbeding]).reshape(1, self.input_length, 600)
             model_input = np.append(model_input_new, model_input, axis=0)
 
             words_probs = self.model.predict(model_input)[0]
             words_probs_enu = list(enumerate(words_probs))
-            words_probs_sorted = sorted(words_probs_enu, key=lambda x: x[1], reverse=True)  # sorting in descending order
-
+            words_probs_sorted = sorted(words_probs_enu, key=lambda x: x[1],reverse=True)  # sorting in descending order
             words_tokens, words_probs = list(zip(*words_probs_sorted))
             # normalizre to sum 1
             words_probs = np.array(words_probs, dtype=np.float64)

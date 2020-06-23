@@ -84,17 +84,21 @@ class DataProcessor:
         df = df[df['MelodyPath'].notna()]
         df = df.reset_index(drop=True)
 
-        if max_sentence != -1:
+        if max_sentence > 0:
             df['Text'] = df['Text'].apply(lambda x: ' '.join(x.split()[:max_sentence]))
         X = []
         y = []
         for i, lyrics in enumerate(df.Text):
+
             splitted_lyrics = [token for token in word_tokenize(lyrics)]
+            if max_sentence > 0:
+                splitted_lyrics = splitted_lyrics[:max_sentence]
             sub_x = []
             sub_y = []
             for j in range(len(splitted_lyrics) - 1):
                 sub_x.append(splitted_lyrics[j])
                 sub_y.append(splitted_lyrics[j + 1])
+
             X.append(np.array(sub_x))
             y.append(np.array(sub_y))
         df['X'] = X
